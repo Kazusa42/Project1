@@ -4,11 +4,11 @@ import cv2
 import numpy as np
 from PIL import Image
 
-from frcnn import FRCNN
+from yolo import YOLO
 
 if __name__ == "__main__":
-    frcnn = FRCNN()
-    
+    yolo = YOLO()
+
     """
     param: mode; use to specify what to do
     'predict': predict one image
@@ -46,7 +46,7 @@ if __name__ == "__main__":
                 print('Open Error! Try again!')
                 continue
             else:
-                r_image = frcnn.detect_image(image)  # core part
+                r_image = yolo.detect_image(image)  # core part
                 r_image.show()
                 # save detect result
                 # r_image.save('result.jpg')
@@ -64,7 +64,7 @@ if __name__ == "__main__":
             ref, frame = capture.read()
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             frame = Image.fromarray(np.uint8(frame))
-            frame = np.array(frcnn.detect_image(frame))
+            frame = np.array(yolo.detect_image(frame))
             frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
 
             fps = (fps + (1. / (time.time() - t1))) / 2
@@ -84,7 +84,7 @@ if __name__ == "__main__":
 
     elif mode == "fps":
         img = Image.open('img/street.jpg')
-        tact_time = frcnn.get_FPS(img, test_interval)
+        tact_time = yolo.get_FPS(img, test_interval)
         print(str(tact_time) + ' seconds, ' + str(1 / tact_time) + 'FPS, @batch_size 1')
 
     elif mode == "dir_predict":
@@ -97,10 +97,9 @@ if __name__ == "__main__":
                                           '.pbm', '.pgm', '.ppm', '.tif', '.tiff')):
                 image_path = os.path.join(dir_origin_path, img_name)
                 image = Image.open(image_path)
-                r_image = frcnn.detect_image(image)
+                r_image = yolo.detect_image(image)
                 if not os.path.exists(dir_save_path):
                     os.makedirs(dir_save_path)
                 r_image.save(os.path.join(dir_save_path, img_name))
     else:
         raise AssertionError("Please specify the correct mode: 'predict', 'video', 'fps' or 'dir_predict'.")
-        
