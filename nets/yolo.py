@@ -9,6 +9,7 @@ from .mobilenet_v1 import mobilenet_v1
 from .mobilenet_v2 import mobilenet_v2
 from .mobilenet_v3 import mobilenet_v3
 from .resnet import resnet50
+from .CSPdarknet import darknet53
 
 
 class MobileNetV1(nn.Module):
@@ -194,6 +195,9 @@ class YoloBody(nn.Module):
         elif backbone == "resnet50":
             self.backbone = ResNet(pretrained=pretrained)
             in_filters = [512, 1024, 2048]
+        elif backbone == 'CSPDarknet53':
+            self.backbone = darknet53(pretrained=pretrained)
+            in_filters = [256, 512, 1024]
         else:
             raise ValueError(
                 'Unsupported backbone - `{}`, Use mobilenetv1, mobilenetv2, mobilenetv3, ghostnet, vgg, densenet121, '
