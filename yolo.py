@@ -11,21 +11,22 @@ from nets.yolo import YoloBody
 from utils.utils import (cvtColor, get_anchors, get_classes, preprocess_input,
                          resize_image)
 from utils.utils_bbox import DecodeBox
+from configure import *
 
 
 class YOLO(object):
     _defaults = {
 
-        "model_path": 'model_data/yolov4_resnet50_voc.pth',
-        "classes_path": 'model_data/voc_classes.txt',
-        "anchors_path": 'model_data/yolo_anchors.txt',
+        "model_path": MODEL_PATH,
+        "classes_path": CLASSES_PATH,
+        "anchors_path": ANCHOR_PATH,
         "anchors_mask": [[6, 7, 8], [3, 4, 5], [0, 1, 2]],
         "input_shape": [416, 416],
-        "backbone": 'resnet50',
+        "backbone": BACKBONE,
         "confidence": 0.5,
         "nms_iou": 0.3,
         "letterbox_image": False,
-        "cuda": True,
+        "cuda": IF_CUDA
     }
 
     @classmethod
