@@ -1,2 +1,4 @@
 # Project1
-Code for thesis.
+Code for thesis.  
+
+Mainly use YOLO v4 to do detection.
