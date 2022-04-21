@@ -1,8 +1,3 @@
-# -------------------------------------------------------------------------------------------------------#
-#   kmeans虽然会对数据集中的框进行聚类，但是很多数据集由于框的大小相近，聚类出来的9个框相差不大，
-#   这样的框反而不利于模型的训练。因为不同的特征层适合不同大小的先验框，shape越小的特征层适合越大的先验框
-#   原始网络的先验框已经按大中小比例分配好了，不进行聚类也会有非常好的效果。
-# -------------------------------------------------------------------------------------------------------#
 import glob
 import xml.etree.ElementTree as ET
 
@@ -11,56 +6,56 @@ import numpy as np
 from tqdm import tqdm
 
 
-def cas_iou(box, cluster):
-    x = np.minimum(cluster[:, 0], box[0])
-    y = np.minimum(cluster[:, 1], box[1])
+def cas_iou(box, cls):
+    x = np.minimum(cls[:, 0], box[0])
+    y = np.minimum(cls[:, 1], box[1])
 
     intersection = x * y
     area1 = box[0] * box[1]
 
-    area2 = cluster[:, 0] * cluster[:, 1]
+    area2 = cls[:, 0] * cls[:, 1]
     iou = intersection / (area1 + area2 - intersection)
 
     return iou
 
 
-def avg_iou(box, cluster):
-    return np.mean([np.max(cas_iou(box[idx], cluster)) for idx in range(box.shape[0])])
+def avg_iou(box, cls):
+    return np.mean([np.max(cas_iou(box[idx], cls)) for idx in range(box.shape[0])])
 
 
 def kmeans(box, k):
-    row = box.shape[0]
-    distance = np.empty((row, k))
+    row_num = box.shape[0]
+    distance = np.empty((row_num, k))
 
-    last_clu = np.zeros((row,))
+    last_clu = np.zeros((row_num,))
 
     np.random.seed()
-    cluster = box[np.random.choice(row, k, replace=False)]
+    cls = box[np.random.choice(row_num, k, replace=False)]
 
-    iter = 0
+    iter_cnt = 0
     while True:
-        for i in range(row):
-            distance[i] = 1 - cas_iou(box[i], cluster)
-        near = np.argmin(distance, axis=1)
+        for idx in range(row_num):
+            distance[idx] = 1 - cas_iou(box[idx], cls)
+        nearest = np.argmin(distance, axis=1)
 
-        if (last_clu == near).all():
+        if (last_clu == nearest).all():
             break
 
         for j in range(k):
-            cluster[j] = np.median(
-                box[near == j], axis=0)
+            cls[j] = np.median(
+                box[nearest == j], axis=0)
 
-        last_clu = near
-        if iter % 5 == 0:
-            print('iter: {:d}. avg_iou:{:.2f}'.format(iter, avg_iou(box, cluster)))
-        iter += 1
+        last_clu = nearest
+        if iter_cnt % 5 == 0:
+            print('iter: {:d}. avg_iou:{:.2f}'.format(iter_cnt, avg_iou(box, cls)))
+        iter_cnt += 1
 
-    return cluster, near
+    return cls, nearest
 
 
-def load_data(path):
-    data = []
-    for xml_file in tqdm(glob.glob('{}/*xml'.format(path))):
+def load_data(file_path):
+    datas = []
+    for xml_file in tqdm(glob.glob('{}/*xml'.format(file_path))):
         tree = ET.parse(xml_file)
         height = int(tree.findtext('./size/height'))
         width = int(tree.findtext('./size/width'))
@@ -77,8 +72,8 @@ def load_data(path):
             ymin = np.float64(ymin)
             xmax = np.float64(xmax)
             ymax = np.float64(ymax)
-            data.append([xmax - xmin, ymax - ymin])
-    return np.array(data)
+            datas.append([xmax - xmin, ymax - ymin])
+    return np.array(datas)
 
 
 if __name__ == '__main__':
