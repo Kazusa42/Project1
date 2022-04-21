@@ -31,12 +31,12 @@ class _DenseLayer(nn.Sequential):
         self.add_module('relu1', nn.ReLU(inplace=True)),
 
         self.add_module('conv1', nn.Conv2d(num_input_features, bn_size * growth_rate,
-                                           kernel_size=1, stride=1, bias=False)),
+                                           kernel_size=(1, 1), stride=(1, 1), bias=False)),
         self.add_module('norm2', nn.BatchNorm2d(bn_size * growth_rate)),
         self.add_module('relu2', nn.ReLU(inplace=True)),
 
         self.add_module('conv2', nn.Conv2d(bn_size * growth_rate, growth_rate,
-                                           kernel_size=3, stride=1, padding=1, bias=False)),
+                                           kernel_size=(3, 3), stride=(1, 1), padding=1, bias=False)),
         self.drop_rate = drop_rate
         self.memory_efficient = memory_efficient
 
@@ -55,8 +55,7 @@ class _DenseLayer(nn.Sequential):
 class _DenseBlock(nn.Module):
     def __init__(self, num_layers, num_input_features, bn_size, growth_rate, drop_rate, memory_efficient=False):
         super(_DenseBlock, self).__init__()
-        # Denselayer的功能就是将具有一定通道的输入
-        # 压缩成growth_rate通道的特征层
+
         for i in range(num_layers):
             layer = _DenseLayer(num_input_features + i * growth_rate, growth_rate=growth_rate,
                                 bn_size=bn_size, drop_rate=drop_rate, memory_efficient=memory_efficient)
@@ -75,7 +74,8 @@ class _Transition(nn.Sequential):
         super(_Transition, self).__init__()
         self.add_module('norm', nn.BatchNorm2d(num_input_features))
         self.add_module('relu', nn.ReLU(inplace=True))
-        self.add_module('conv', nn.Conv2d(num_input_features, num_output_features, kernel_size=1, stride=1, bias=False))
+        self.add_module('conv', nn.Conv2d(num_input_features, num_output_features, kernel_size=(1, 1),
+                                          stride=(1, 1), bias=False))
         self.add_module('pool', nn.AvgPool2d(kernel_size=2, stride=2))
 
 
@@ -86,7 +86,7 @@ class DenseNet(nn.Module):
 
         self.features = nn.Sequential(OrderedDict([
             # 416, 416, 3 -> 208, 208, 64
-            ('conv0', nn.Conv2d(3, num_init_features, kernel_size=7, stride=2, padding=3, bias=False)),
+            ('conv0', nn.Conv2d(3, num_init_features, kernel_size=(7, 7), stride=(2, 2), padding=3, bias=False)),
             ('norm0', nn.BatchNorm2d(num_init_features)),
             ('relu0', nn.ReLU(inplace=True)),
             # 208, 208, 64 -> 104, 104, 64
