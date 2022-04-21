@@ -1,12 +1,12 @@
-scipy
-numpy
-matplotlib
-torch
-torchvision
-tqdm
-Pillow
-h5py
-torchsummary
-opencv-python
+scipy == 1.7.3
+numpy == 1.22.1
+matplotlib == 3.5.1
+torch == 1.10.1+cu113
+torchvision == 0.11.2+cu113
+tqdm == 4.62.3
+Pillow == 9.0.0
+h5py == 3.6.0
+torchsummary == 1.5.1
+opencv-python == 4.5.5.62
 thop
-tensorboard
+tensorboard == 2.8.0
