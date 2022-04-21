@@ -10,23 +10,22 @@ from PIL import ImageDraw, ImageFont
 from nets.yolo import YoloBody
 from utils.utils import (cvtColor, get_anchors, get_classes, preprocess_input,
                          resize_image)
-from utils.utils_bbox import DecodeBox
+from utils.utils_bbox import DecodeBox, non_max_suppression
 from configure import *
 
 
 class YOLO(object):
     _defaults = {
-
         "model_path": MODEL_PATH,
         "classes_path": CLASSES_PATH,
         "anchors_path": ANCHOR_PATH,
-        "anchors_mask": [[6, 7, 8], [3, 4, 5], [0, 1, 2]],
-        "input_shape": [416, 416],
+        "anchors_mask": ANCHOR_MASK,
+        "cuda": IF_CUDA,
         "backbone": BACKBONE,
-        "confidence": 0.5,
-        "nms_iou": 0.3,
-        "letterbox_image": False,
-        "cuda": IF_CUDA
+        "input_shape": INPUT_SHAPE,
+        "confidence": CONFIDENCE,
+        "nms_iou": NMS_SCORE,
+        "letterbox_image": False
     }
 
     @classmethod
@@ -74,9 +73,9 @@ class YOLO(object):
                 images = images.cuda()
             outputs = self.net(images)
             outputs = self.bbox_util.decode_box(outputs)
-            results = self.bbox_util.non_max_suppression(torch.cat(outputs, 1), self.num_classes, self.input_shape,
-                                                         image_shape, self.letterbox_image, conf_thres=self.confidence,
-                                                         nms_thres=self.nms_iou)
+            results = non_max_suppression(torch.cat(outputs, 1), self.num_classes, self.input_shape,
+                                          image_shape, self.letterbox_image, conf_thres=self.confidence,
+                                          nms_thres=self.nms_iou)
             if results[0] is None:
                 return image
 
@@ -84,7 +83,7 @@ class YOLO(object):
             top_conf = results[0][:, 4] * results[0][:, 5]
             top_boxes = results[0][:, :4]
 
-        font = ImageFont.truetype(font='model_data/simhei.ttf',
+        font = ImageFont.truetype(font=FONT_TYPE,
                                   size=np.floor(3e-2 * image.size[1] + 0.5).astype('int32'))
         thickness = int(max((image.size[0] + image.size[1]) // np.mean(self.input_shape), 1))
 
@@ -148,17 +147,17 @@ class YOLO(object):
             outputs = self.net(images)
             outputs = self.bbox_util.decode_box(outputs)
 
-            results = self.bbox_util.non_max_suppression(torch.cat(outputs, 1), self.num_classes, self.input_shape,
-                                                         image_shape, self.letterbox_image, conf_thres=self.confidence,
-                                                         nms_thres=self.nms_iou)
+            results = non_max_suppression(torch.cat(outputs, 1), self.num_classes, self.input_shape,
+                                          image_shape, self.letterbox_image, conf_thres=self.confidence,
+                                          nms_thres=self.nms_iou)
         t1 = time.time()
         for _ in range(test_interval):
             with torch.no_grad():
                 outputs = self.net(images)
                 outputs = self.bbox_util.decode_box(outputs)
-                results = self.bbox_util.non_max_suppression(torch.cat(outputs, 1), self.num_classes, self.input_shape,
-                                                             image_shape, self.letterbox_image,
-                                                             conf_thres=self.confidence, nms_thres=self.nms_iou)
+                results = non_max_suppression(torch.cat(outputs, 1), self.num_classes, self.input_shape,
+                                              image_shape, self.letterbox_image,
+                                              conf_thres=self.confidence, nms_thres=self.nms_iou)
 
         t2 = time.time()
         tact_time = (t2 - t1) / test_interval
@@ -177,9 +176,9 @@ class YOLO(object):
                 images = images.cuda()
             outputs = self.net(images)
             outputs = self.bbox_util.decode_box(outputs)
-            results = self.bbox_util.non_max_suppression(torch.cat(outputs, 1), self.num_classes, self.input_shape,
-                                                         image_shape, self.letterbox_image, conf_thres=self.confidence,
-                                                         nms_thres=self.nms_iou)
+            results = non_max_suppression(torch.cat(outputs, 1), self.num_classes, self.input_shape,
+                                          image_shape, self.letterbox_image, conf_thres=self.confidence,
+                                          nms_thres=self.nms_iou)
 
             if results[0] is None:
                 return

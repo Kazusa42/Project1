@@ -6,12 +6,13 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 
 from nets.yolo import YoloBody
-from nets.yolo_training import (YOLOLoss, get_lr_scheduler, set_optimizer_lr,
-                                weights_init)
+from nets.yolo_training import (YOLOLoss, get_lr_scheduler, set_optimizer_lr)
 from utils.callbacks import LossHistory
 from utils.dataloader import YoloDataset, yolo_dataset_collate
-from utils.utils import get_anchors, get_classes
+from utils.utils import get_anchors, get_classes, weights_init
 from utils.utils_fit import fit_one_epoch
+
+from configure import *
 
 '''
 训练自己的目标检测模型一定需要注意以下几点：
@@ -35,23 +36,16 @@ from utils.utils_fit import fit_one_epoch
    这些都是经验上，只能靠各位同学多查询资料和自己试试了。
 '''  
 if __name__ == "__main__":
-    Cuda = True
-    classes_path = 'model_data/voc_classes.txt'
-    anchors_path = 'model_data/yolo_anchors.txt'
-    anchors_mask = [[6, 7, 8], [3, 4, 5], [0, 1, 2]]
-    model_path = 'model_data/yolov4_mobilenet_v1_voc.pth'
-    input_shape = [416, 416]
+    Cuda = IF_CUDA
+    classes_path = CLASSES_PATH
+    anchors_path = ANCHOR_PATH
+    anchors_mask = ANCHOR_MASK
+    model_path = MODEL_PATH
+    input_shape = INPUT_SHAPE
+    backbone = BACKBONE
 
-    """
-    resnet50
-    mobilenet: v1, v2, v3
-    densenet: 121, 169, 201
-    """
-    backbone = "mobilenetv1"
-
-    pretrained = False
-
-    mosaic = True
+    pretrained = PRE_TRAINED
+    mosaic = MOSAIC
     label_smoothing = 0
 
     #   在此提供若干参数设置建议，各位训练者根据自己的需求进行灵活调整：
@@ -72,47 +66,33 @@ if __name__ == "__main__":
     #       受到BatchNorm层影响，batch_size最小为2，不能为1。
     #       正常情况下Freeze_batch_size建议为Unfreeze_batch_size的1-2倍。不建议设置的差距过大，因为关系到学习率的自动调整。
 
-    Init_Epoch = 0
-    Freeze_Epoch = 50
-    Freeze_batch_size = 16
+    Init_Epoch = INIT_EPOCH
+    Freeze_Epoch = FREEZE_EPOCH
+    Freeze_batch_size = FREEZE_BATCH_SIZE
     #   解冻阶段训练参数
     #   此时模型的主干不被冻结了，特征提取网络会发生改变
     #   占用的显存较大，网络所有的参数都会发生改变
     #   UnFreeze_Epoch          模型总共训练的epoch
     #   Unfreeze_batch_size     模型在解冻后的batch_size
-    UnFreeze_Epoch = 100
-    Unfreeze_batch_size = 8
-    #   Freeze_Train    是否进行冻结训练
-    #                   默认先冻结主干训练后解冻训练。
-    Freeze_Train = True
+    UnFreeze_Epoch = UNFREZZEZ_EPOCH
+    Unfreeze_batch_size = UNFREEZE_BATCH_SIZE
+    #   Freeze_Train    是否进行冻结训练, 默认先冻结主干训练后解冻训练。
+    Freeze_Train = FREEZE_TRAIN
 
-    #   Init_lr         模型的最大学习率
-    #   Min_lr          模型的最小学习率，默认为最大学习率的0.01
-    Init_lr = 1e-2
-    Min_lr = Init_lr * 0.01
-    #   optimizer_type  使用到的优化器种类，可选的有adam、sgd
-    #                   当使用Adam优化器时建议设置  Init_lr=1e-3
-    #                   当使用SGD优化器时建议设置   Init_lr=1e-2
-    #   momentum        优化器内部使用到的momentum参数
-    #   weight_decay    权值衰减，可防止过拟合
-    optimizer_type = "sgd"
-    momentum = 0.937
-    weight_decay = 5e-4
+    Init_lr = INIT_LR
+    Min_lr = MIN_LR
 
-    #   lr_decay_type   使用到的学习率下降方式，可选的有step、cos
-    lr_decay_type = "cos"
-    #   save_period     多少个epoch保存一次权值，默认每个世代都保存
+    optimizer_type = OPT_TYPE
+    momentum = MOMENTUM
+    weight_decay = WEIGHT_DECAY
+
+    lr_decay_type = LR_DECAY_TYPE
+
     save_period = 1
-    #   num_workers     用于设置是否使用多线程读取数据
-    #                   开启后会加快数据读取速度，但是会占用更多内存
-    #                   内存较小的电脑可以设置为2或者0
-    num_workers = 4
+    num_workers = 4  # thread number
 
-    #   train_annotation_path   训练图片路径和标签
-    #   val_annotation_path     验证图片路径和标签
-
-    train_annotation_path = '2007_train.txt'
-    val_annotation_path = '2007_val.txt'
+    train_annotation_path = 'train.txt'
+    val_annotation_path = 'val.txt'
 
     class_names, num_classes = get_classes(classes_path)
     anchors, num_anchors = get_anchors(anchors_path)
@@ -179,7 +159,7 @@ if __name__ == "__main__":
         epoch_step_val = num_val // batch_size
         
         if epoch_step == 0 or epoch_step_val == 0:
-            raise ValueError("数据集过小，无法继续进行训练，请扩充数据集。")
+            raise ValueError("Dataset is too small to train.")
 
         train_dataset = YoloDataset(train_lines, input_shape, num_classes, epoch_length=UnFreeze_Epoch,
                                     mosaic=mosaic, train=True)
@@ -206,7 +186,7 @@ if __name__ == "__main__":
                 epoch_step_val = num_val // batch_size
 
                 if epoch_step == 0 or epoch_step_val == 0:
-                    raise ValueError("数据集过小，无法继续进行训练，请扩充数据集。")
+                    raise ValueError("Dataset is too small to train.")
 
                 gen = DataLoader(train_dataset, shuffle=True, batch_size=batch_size, num_workers=num_workers,
                                  pin_memory=True, drop_last=True, collate_fn=yolo_dataset_collate)
