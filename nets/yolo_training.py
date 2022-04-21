@@ -6,11 +6,114 @@ import torch
 import torch.nn as nn
 
 
+def clip_by_tensor(t, t_min, t_max):
+    t = t.float()
+    result = (t >= t_min).float() * t + (t < t_min).float() * t_min
+    result = (result <= t_max).float() * result + (result > t_max).float() * t_max
+    return result
+
+
+def MSELoss(pred, target):
+    return torch.pow(pred - target, 2)
+
+
+def BCELoss(pred, target):
+    epsilon = 1e-7
+    pred = clip_by_tensor(pred, epsilon, 1.0 - epsilon)
+    output = - target * torch.log(pred) - (1.0 - target) * torch.log(1.0 - pred)
+    return output
+
+
+def box_ciou(b1, b2):
+    """
+    input shape：
+    ----------
+    b1: tensor, shape=(batch, feat_w, feat_h, anchor_num, 4), xywh
+    b2: tensor, shape=(batch, feat_w, feat_h, anchor_num, 4), xywh
+
+    output：
+    -------
+    ciou: tensor, shape=(batch, feat_w, feat_h, anchor_num, 1)
+    """
+    #  get left-top and right-bottom conrner of predicting box
+    b1_xy = b1[..., :2]
+    b1_wh = b1[..., 2:4]
+    b1_wh_half = b1_wh / 2.
+    b1_mins = b1_xy - b1_wh_half
+    b1_maxes = b1_xy + b1_wh_half
+
+    #   get left-top and right-bottom conrner of ground truth
+    b2_xy = b2[..., :2]
+    b2_wh = b2[..., 2:4]
+    b2_wh_half = b2_wh / 2.
+    b2_mins = b2_xy - b2_wh_half
+    b2_maxes = b2_xy + b2_wh_half
+
+    #  get iou
+    intersect_mins = torch.max(b1_mins, b2_mins)
+    intersect_maxes = torch.min(b1_maxes, b2_maxes)
+    intersect_wh = torch.max(intersect_maxes - intersect_mins, torch.zeros_like(intersect_maxes))
+    intersect_area = intersect_wh[..., 0] * intersect_wh[..., 1]
+    b1_area = b1_wh[..., 0] * b1_wh[..., 1]
+    b2_area = b2_wh[..., 0] * b2_wh[..., 1]
+    union_area = b1_area + b2_area - intersect_area
+    iou = intersect_area / torch.clamp(union_area, min=1e-6)
+
+    center_distance = torch.sum(torch.pow((b1_xy - b2_xy), 2), axis=-1)
+
+    #  find area A_c
+    enclose_mins = torch.min(b1_mins, b2_mins)
+    enclose_maxes = torch.max(b1_maxes, b2_maxes)
+    enclose_wh = torch.max(enclose_maxes - enclose_mins, torch.zeros_like(intersect_maxes))
+
+    enclose_diagonal = torch.sum(torch.pow(enclose_wh, 2), axis=-1)
+    ciou = iou - 1.0 * center_distance / torch.clamp(enclose_diagonal, min=1e-6)
+
+    v = (4 / (math.pi ** 2)) * torch.pow((torch.atan(b1_wh[..., 0] / torch.clamp(b1_wh[..., 1], min=1e-6)) -
+                                          torch.atan(b2_wh[..., 0] / torch.clamp(b2_wh[..., 1], min=1e-6))), 2)
+    alpha = v / torch.clamp((1.0 - iou + v), min=1e-6)
+    ciou = ciou - alpha * v
+    return ciou
+
+
+def smooth_labels(y_true, label_smoothing, num_classes):
+    return y_true * (1.0 - label_smoothing) + label_smoothing / num_classes
+
+
+def calculate_iou(_box_a, _box_b):
+    b1_x1, b1_x2 = _box_a[:, 0] - _box_a[:, 2] / 2, _box_a[:, 0] + _box_a[:, 2] / 2
+    b1_y1, b1_y2 = _box_a[:, 1] - _box_a[:, 3] / 2, _box_a[:, 1] + _box_a[:, 3] / 2
+
+    b2_x1, b2_x2 = _box_b[:, 0] - _box_b[:, 2] / 2, _box_b[:, 0] + _box_b[:, 2] / 2
+    b2_y1, b2_y2 = _box_b[:, 1] - _box_b[:, 3] / 2, _box_b[:, 1] + _box_b[:, 3] / 2
+
+    box_a = torch.zeros_like(_box_a)
+    box_b = torch.zeros_like(_box_b)
+    box_a[:, 0], box_a[:, 1], box_a[:, 2], box_a[:, 3] = b1_x1, b1_y1, b1_x2, b1_y2
+    box_b[:, 0], box_b[:, 1], box_b[:, 2], box_b[:, 3] = b2_x1, b2_y1, b2_x2, b2_y2
+
+    A = box_a.size(0)
+    B = box_b.size(0)
+
+    max_xy = torch.min(box_a[:, 2:].unsqueeze(1).expand(A, B, 2), box_b[:, 2:].unsqueeze(0).expand(A, B, 2))
+    min_xy = torch.max(box_a[:, :2].unsqueeze(1).expand(A, B, 2), box_b[:, :2].unsqueeze(0).expand(A, B, 2))
+    inter = torch.clamp((max_xy - min_xy), min=0)
+    inter = inter[:, :, 0] * inter[:, :, 1]
+
+    area_a = ((box_a[:, 2] - box_a[:, 0]) * (box_a[:, 3] - box_a[:, 1])).unsqueeze(1).expand_as(inter)  # [A,B]
+    area_b = ((box_b[:, 2] - box_b[:, 0]) * (box_b[:, 3] - box_b[:, 1])).unsqueeze(0).expand_as(inter)  # [A,B]
+
+    union = area_a + area_b - inter
+    return inter / union
+
+
 class YOLOLoss(nn.Module):
     def __init__(self, anchors, num_classes, input_shape, cuda,
-                 anchors_mask=[[6, 7, 8], [3, 4, 5], [0, 1, 2]], label_smoothing=0):
+                 anchors_mask=None, label_smoothing=0):
         super(YOLOLoss, self).__init__()
 
+        if anchors_mask is None:
+            anchors_mask = [[6, 7, 8], [3, 4, 5], [0, 1, 2]]
         self.anchors = anchors
         self.num_classes = num_classes
         self.bbox_attrs = 5 + num_classes
@@ -26,82 +129,7 @@ class YOLOLoss(nn.Module):
         self.ignore_threshold = 0.5
         self.cuda = cuda
 
-    def clip_by_tensor(self, t, t_min, t_max):
-        t = t.float()
-        result = (t >= t_min).float() * t + (t < t_min).float() * t_min
-        result = (result <= t_max).float() * result + (result > t_max).float() * t_max
-        return result
-
-    def MSELoss(self, pred, target):
-        return torch.pow(pred - target, 2)
-
-    def BCELoss(self, pred, target):
-        epsilon = 1e-7
-        pred = self.clip_by_tensor(pred, epsilon, 1.0 - epsilon)
-        output = - target * torch.log(pred) - (1.0 - target) * torch.log(1.0 - pred)
-        return output
-
-    def box_ciou(self, b1, b2):
-        """
-        输入为：
-        ----------
-        b1: tensor, shape=(batch, feat_w, feat_h, anchor_num, 4), xywh
-        b2: tensor, shape=(batch, feat_w, feat_h, anchor_num, 4), xywh
-
-        返回为：
-        -------
-        ciou: tensor, shape=(batch, feat_w, feat_h, anchor_num, 1)
-        """
-        #  get left-top and right-bottom conrner of predicting box
-        b1_xy = b1[..., :2]
-        b1_wh = b1[..., 2:4]
-        b1_wh_half = b1_wh / 2.
-        b1_mins = b1_xy - b1_wh_half
-        b1_maxes = b1_xy + b1_wh_half
-
-        #   get left-top and right-bottom conrner of ground truth
-        b2_xy = b2[..., :2]
-        b2_wh = b2[..., 2:4]
-        b2_wh_half = b2_wh / 2.
-        b2_mins = b2_xy - b2_wh_half
-        b2_maxes = b2_xy + b2_wh_half
-
-        #  get iou
-        intersect_mins = torch.max(b1_mins, b2_mins)
-        intersect_maxes = torch.min(b1_maxes, b2_maxes)
-        intersect_wh = torch.max(intersect_maxes - intersect_mins, torch.zeros_like(intersect_maxes))
-        intersect_area = intersect_wh[..., 0] * intersect_wh[..., 1]
-        b1_area = b1_wh[..., 0] * b1_wh[..., 1]
-        b2_area = b2_wh[..., 0] * b2_wh[..., 1]
-        union_area = b1_area + b2_area - intersect_area
-        iou = intersect_area / torch.clamp(union_area, min=1e-6)
-
-        center_distance = torch.sum(torch.pow((b1_xy - b2_xy), 2), axis=-1)
-
-        #  find area A_c
-        enclose_mins = torch.min(b1_mins, b2_mins)
-        enclose_maxes = torch.max(b1_maxes, b2_maxes)
-        enclose_wh = torch.max(enclose_maxes - enclose_mins, torch.zeros_like(intersect_maxes))
-
-        enclose_diagonal = torch.sum(torch.pow(enclose_wh, 2), axis=-1)
-        ciou = iou - 1.0 * center_distance / torch.clamp(enclose_diagonal, min=1e-6)
-
-        v = (4 / (math.pi ** 2)) * torch.pow((torch.atan(b1_wh[..., 0] / torch.clamp(b1_wh[..., 1], min=1e-6)) -
-                                              torch.atan(b2_wh[..., 0] / torch.clamp(b2_wh[..., 1], min=1e-6))), 2)
-        alpha = v / torch.clamp((1.0 - iou + v), min=1e-6)
-        ciou = ciou - alpha * v
-        return ciou
-
-    def smooth_labels(self, y_true, label_smoothing, num_classes):
-        return y_true * (1.0 - label_smoothing) + label_smoothing / num_classes
-
     def forward(self, layer_num, input_batch, targets=None):
-        #   l 代表使用的是第几个有效特征层
-        #   input的shape为  bs, 3*(5+num_classes), 13, 13
-        #                   bs, 3*(5+num_classes), 26, 26
-        #                   bs, 3*(5+num_classes), 52, 52
-        #   targets 真实框的标签情况 [batch_size, num_gt, 5]
-
         bs = input_batch.size(0)
         in_h = input_batch.size(2)
         in_w = input_batch.size(3)
@@ -109,12 +137,7 @@ class YOLOLoss(nn.Module):
         stride_h = self.input_shape[0] / in_h
         stride_w = self.input_shape[1] / in_w
         scaled_anchors = [(a_w / stride_w, a_h / stride_h) for a_w, a_h in self.anchors]
-        #   输入的input一共有三个，他们的shape分别是
-        #   bs, 3 * (5+num_classes), 13, 13 => bs, 3, 5 + num_classes, 13, 13 => batch_size, 3, 13, 13, 5 + num_classes
 
-        #   batch_size, 3, 13, 13, 5 + num_classes
-        #   batch_size, 3, 26, 26, 5 + num_classes
-        #   batch_size, 3, 52, 52, 5 + num_classes
         prediction = input_batch.view(bs, len(self.anchors_mask[layer_num]),
                                       self.bbox_attrs, in_h, in_w).permute(0, 1, 3, 4, 2).contiguous()
 
@@ -139,43 +162,16 @@ class YOLOLoss(nn.Module):
         obj_mask = y_true[..., 4] == 1
         n = torch.sum(obj_mask)
         if n != 0:
-            ciou = self.box_ciou(pred_boxes, y_true[..., :4])
+            ciou = box_ciou(pred_boxes, y_true[..., :4])
             loss_loc = torch.mean((1 - ciou)[obj_mask])
 
-            loss_cls = torch.mean(self.BCELoss(pred_cls[obj_mask], y_true[..., 5:][obj_mask]))
+            loss_cls = torch.mean(BCELoss(pred_cls[obj_mask], y_true[..., 5:][obj_mask]))
             loss += loss_loc * self.box_ratio + loss_cls * self.cls_ratio
 
-        loss_conf = torch.mean(self.BCELoss(conf, obj_mask.type_as(conf))[noobj_mask.bool() | obj_mask])
+        loss_conf = torch.mean(BCELoss(conf, obj_mask.type_as(conf))[noobj_mask.bool() | obj_mask])
         loss += loss_conf * self.balance[layer_num] * self.obj_ratio
-        # if n != 0:
-        #     print(loss_loc * self.box_ratio, loss_cls * self.cls_ratio, loss_conf * self.balance[l] * self.obj_ratio)
+
         return loss
-
-    def calculate_iou(self, _box_a, _box_b):
-        b1_x1, b1_x2 = _box_a[:, 0] - _box_a[:, 2] / 2, _box_a[:, 0] + _box_a[:, 2] / 2
-        b1_y1, b1_y2 = _box_a[:, 1] - _box_a[:, 3] / 2, _box_a[:, 1] + _box_a[:, 3] / 2
-
-        b2_x1, b2_x2 = _box_b[:, 0] - _box_b[:, 2] / 2, _box_b[:, 0] + _box_b[:, 2] / 2
-        b2_y1, b2_y2 = _box_b[:, 1] - _box_b[:, 3] / 2, _box_b[:, 1] + _box_b[:, 3] / 2
-
-        box_a = torch.zeros_like(_box_a)
-        box_b = torch.zeros_like(_box_b)
-        box_a[:, 0], box_a[:, 1], box_a[:, 2], box_a[:, 3] = b1_x1, b1_y1, b1_x2, b1_y2
-        box_b[:, 0], box_b[:, 1], box_b[:, 2], box_b[:, 3] = b2_x1, b2_y1, b2_x2, b2_y2
-
-        A = box_a.size(0)
-        B = box_b.size(0)
-
-        max_xy = torch.min(box_a[:, 2:].unsqueeze(1).expand(A, B, 2), box_b[:, 2:].unsqueeze(0).expand(A, B, 2))
-        min_xy = torch.max(box_a[:, :2].unsqueeze(1).expand(A, B, 2), box_b[:, :2].unsqueeze(0).expand(A, B, 2))
-        inter = torch.clamp((max_xy - min_xy), min=0)
-        inter = inter[:, :, 0] * inter[:, :, 1]
-
-        area_a = ((box_a[:, 2] - box_a[:, 0]) * (box_a[:, 3] - box_a[:, 1])).unsqueeze(1).expand_as(inter)  # [A,B]
-        area_b = ((box_b[:, 2] - box_b[:, 0]) * (box_b[:, 3] - box_b[:, 1])).unsqueeze(0).expand_as(inter)  # [A,B]
-
-        union = area_a + area_b - inter
-        return inter / union  # [A,B]
 
     def get_target(self, layer, targets, anchors, in_h, in_w):
         bs = len(targets)
@@ -197,7 +193,7 @@ class YOLOLoss(nn.Module):
 
             anchor_shapes = torch.FloatTensor(
                 torch.cat((torch.zeros((len(anchors), 2)), torch.FloatTensor(anchors)), 1))
-            best_ns = torch.argmax(self.calculate_iou(gt_box, anchor_shapes), dim=-1)
+            best_ns = torch.argmax(calculate_iou(gt_box, anchor_shapes), dim=-1)
 
             for t, best_n in enumerate(best_ns):
                 if best_n not in self.anchors_mask[layer]:
@@ -251,48 +247,26 @@ class YOLOLoss(nn.Module):
                 batch_target[:, [1, 3]] = targets[b][:, [1, 3]] * in_h
                 batch_target = batch_target[:, :4]
 
-                anch_ious = self.calculate_iou(batch_target, pred_boxes_for_ignore)
+                anch_ious = calculate_iou(batch_target, pred_boxes_for_ignore)
                 anch_ious_max, _ = torch.max(anch_ious, dim=0)
                 anch_ious_max = anch_ious_max.view(pred_boxes[b].size()[:3])
                 noobj_mask[b][anch_ious_max > self.ignore_threshold] = 0
         return noobj_mask, pred_boxes
 
 
-def weights_init(net, init_type='normal', init_gain=0.02):
-    def init_func(m):
-        classname = m.__class__.__name__
-        if hasattr(m, 'weight') and classname.find('Conv') != -1:
-            if init_type == 'normal':
-                torch.nn.init.normal_(m.weight.data, 0.0, init_gain)
-            elif init_type == 'xavier':
-                torch.nn.init.xavier_normal_(m.weight.data, gain=init_gain)
-            elif init_type == 'kaiming':
-                torch.nn.init.kaiming_normal_(m.weight.data, a=0, mode='fan_in')
-            elif init_type == 'orthogonal':
-                torch.nn.init.orthogonal_(m.weight.data, gain=init_gain)
-            else:
-                raise NotImplementedError('initialization method [%s] is not implemented' % init_type)
-        elif classname.find('BatchNorm2d') != -1:
-            torch.nn.init.normal_(m.weight.data, 1.0, 0.02)
-            torch.nn.init.constant_(m.bias.data, 0.0)
-
-    print('initialize network with %s type' % init_type)
-    net.apply(init_func)
-
-
 def get_lr_scheduler(lr_decay_type, lr, min_lr, total_iters, warmup_iters_ratio=0.1, warmup_lr_ratio=0.1,
                      no_aug_iter_ratio=0.3, step_num=10):
-    def yolox_warm_cos_lr(lr, min_lr, total_iters, warmup_total_iters, warmup_lr_start, no_aug_iter, iters):
-        if iters <= warmup_total_iters:
-            lr = (lr - warmup_lr_start) * pow(iters / float(warmup_total_iters), 2) + warmup_lr_start
-        elif iters >= total_iters - no_aug_iter:
-            lr = min_lr
+    def yolox_warm_cos_lr(l_rate, min_l_rate, t_iters, warmup_t_iters, warmup_start_lr, non_aug_iter, iters):
+        if iters <= warmup_t_iters:
+            l_rate = (l_rate - warmup_start_lr) * pow(iters / float(warmup_t_iters), 2) + warmup_start_lr
+        elif iters >= t_iters - non_aug_iter:
+            l_rate = min_l_rate
         else:
-            lr = min_lr + 0.5 * (lr - min_lr) * (
+            l_rate = min_l_rate + 0.5 * (l_rate - min_l_rate) * (
                     1.0 + math.cos(
-                math.pi * (iters - warmup_total_iters) / (total_iters - warmup_total_iters - no_aug_iter))
+                math.pi * (iters - warmup_t_iters) / (t_iters - warmup_t_iters - non_aug_iter))
             )
-        return lr
+        return l_rate
 
     def step_lr(learning_rate, decay, step, iters):
         if step < 1:
@@ -315,6 +289,6 @@ def get_lr_scheduler(lr_decay_type, lr, min_lr, total_iters, warmup_iters_ratio=
 
 
 def set_optimizer_lr(optimizer, lr_scheduler_func, epoch):
-    lr = lr_scheduler_func(epoch)
+    l_r = lr_scheduler_func(epoch)
     for param_group in optimizer.param_groups:
-        param_group['lr'] = lr
+        param_group['lr'] = l_r
