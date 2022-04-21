@@ -106,11 +106,11 @@ def conv2d(filter_in, filter_out, kernel_size, groups=1, stride=1):
 
 def conv_dw(filter_in, filter_out, stride=1):
     return nn.Sequential(
-        nn.Conv2d(filter_in, filter_in, 3, stride, 1, groups=filter_in, bias=False),
+        nn.Conv2d(filter_in, filter_in, (3, 3), stride, 1, groups=filter_in, bias=False),
         nn.BatchNorm2d(filter_in),
         nn.ReLU6(inplace=True),
 
-        nn.Conv2d(filter_in, filter_out, 1, 1, 0, bias=False),
+        nn.Conv2d(filter_in, filter_out, (1, 1), 1, 0, bias=False),
         nn.BatchNorm2d(filter_out),
         nn.ReLU6(inplace=True),
     )
@@ -174,7 +174,7 @@ def yolo_head(filters_list, in_filters):
 
 
 class YoloBody(nn.Module):
-    def __init__(self, anchors_mask, num_classes, backbone="mobilenetv2", pretrained=False):
+    def __init__(self, anchors_mask, num_classes, backbone="", pretrained=False):
         super(YoloBody, self).__init__()
 
         if backbone == "mobilenetv1":
