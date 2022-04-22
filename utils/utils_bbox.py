@@ -3,19 +3,10 @@ from torchvision.ops import nms
 import numpy as np
 
 
-def yolo_correct_boxes(box_xy, box_wh, input_shape, image_shape, letterbox_image):
+def yolo_correct_boxes(box_xy, box_wh, image_shape):
     box_yx = box_xy[..., ::-1]
     box_hw = box_wh[..., ::-1]
-    input_shape = np.array(input_shape)
     image_shape = np.array(image_shape)
-
-    if letterbox_image:
-        new_shape = np.round(image_shape * np.min(input_shape / image_shape))
-        offset = (input_shape - new_shape) / 2. / input_shape
-        scale = input_shape / new_shape
-
-        box_yx = (box_yx - offset) * scale
-        box_hw *= scale
 
     box_mins = box_yx - (box_hw / 2.)
     box_maxes = box_yx + (box_hw / 2.)
@@ -25,8 +16,8 @@ def yolo_correct_boxes(box_xy, box_wh, input_shape, image_shape, letterbox_image
     return boxes
 
 
-def non_max_suppression(prediction, num_classes, input_shape, image_shape,
-                        letterbox_image, conf_thres=0.5, nms_thres=0.4):
+def non_max_suppression(prediction, num_classes, image_shape,
+                        conf_thres=0.5, nms_thres=0.4):
     box_corner = prediction.new(prediction.shape)
     box_corner[:, :, 0] = prediction[:, :, 0] - prediction[:, :, 2] / 2
     box_corner[:, :, 1] = prediction[:, :, 1] - prediction[:, :, 3] / 2
@@ -65,11 +56,11 @@ def non_max_suppression(prediction, num_classes, input_shape, image_shape,
         if output[i] is not None:
             output[i] = output[i].cpu().numpy()
             box_xy, box_wh = (output[i][:, 0:2] + output[i][:, 2:4])/2, output[i][:, 2:4] - output[i][:, 0:2]
-            output[i][:, :4] = yolo_correct_boxes(box_xy, box_wh, input_shape, image_shape, letterbox_image)
+            output[i][:, :4] = yolo_correct_boxes(box_xy, box_wh, image_shape)
     return output
 
 
-class DecodeBox():
+class DecodeBox:
     def __init__(self, anchors, num_classes, input_shape, anchors_mask=None):
         super(DecodeBox, self).__init__()
         if anchors_mask is None:

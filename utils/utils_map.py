@@ -558,8 +558,8 @@ def get_map(MINOVERLAP, draw_plot, path='./map_out'):
 
                     cv2.imshow("Animation", img)
                     cv2.waitKey(20)
-                    output_img_path = RESULTS_FILES_PATH + "/images/detections_one_by_one/" + class_name + "_detection" + str(
-                        idx) + ".jpg"
+                    output_img_path = RESULTS_FILES_PATH + "/images/detections_one_by_one/" + \
+                        class_name + "_detection" + str(idx) + ".jpg"
                     cv2.imwrite(output_img_path, img)
                     cv2.imwrite(img_cumulative_path, img_cumulative)
 
@@ -724,17 +724,8 @@ def get_map(MINOVERLAP, draw_plot, path='./map_out'):
         output_path = RESULTS_FILES_PATH + "/ground-truth-info.png"
         to_show = False
         plot_color = 'forestgreen'
-        draw_plot_func(
-            gt_counter_per_class,
-            n_classes,
-            window_title,
-            plot_title,
-            x_label,
-            output_path,
-            to_show,
-            plot_color,
-            '',
-        )
+        draw_plot_func(gt_counter_per_class, n_classes, window_title, plot_title,
+                       x_label, output_path, to_show, plot_color, '',)
 
     """
     Draw log-average miss rate plot (Show lamr of all classes in decreasing order)
@@ -746,17 +737,8 @@ def get_map(MINOVERLAP, draw_plot, path='./map_out'):
         output_path = RESULTS_FILES_PATH + "/lamr.png"
         to_show = False
         plot_color = 'royalblue'
-        draw_plot_func(
-            lamr_dictionary,
-            n_classes,
-            window_title,
-            plot_title,
-            x_label,
-            output_path,
-            to_show,
-            plot_color,
-            ""
-        )
+        draw_plot_func(lamr_dictionary, n_classes, window_title, plot_title,
+                       x_label, output_path, to_show, plot_color, "")
 
     """
     Draw mAP plot (Show AP's of all classes in decreasing order)
@@ -768,25 +750,15 @@ def get_map(MINOVERLAP, draw_plot, path='./map_out'):
         output_path = RESULTS_FILES_PATH + "/mAP.png"
         to_show = True
         plot_color = 'royalblue'
-        draw_plot_func(
-            ap_dictionary,
-            n_classes,
-            window_title,
-            plot_title,
-            x_label,
-            output_path,
-            to_show,
-            plot_color,
-            ""
-        )
+        draw_plot_func(ap_dictionary, n_classes, window_title, plot_title,
+                       x_label, output_path, to_show, plot_color, "")
 
 
 def preprocess_gt(gt_path, class_names):
     image_ids = os.listdir(gt_path)
     results = {}
 
-    images = []
-    bboxes = []
+    images, bboxes = [], []
     for i, image_id in enumerate(image_ids):
         lines_list = file_lines_to_list(os.path.join(gt_path, image_id))
         boxes_per_image = []
@@ -795,10 +767,6 @@ def preprocess_gt(gt_path, class_names):
         image['file_name'] = image_id + '.jpg'
         image['width'] = 1
         image['height'] = 1
-        # -----------------------------------------------------------------#
-        #   感谢 多学学英语吧 的提醒
-        #   解决了'Results do not correspond to current coco set'问题
-        # -----------------------------------------------------------------#
         image['id'] = str(image_id)
 
         for line in lines_list:
@@ -861,33 +829,3 @@ def preprocess_dr(dr_path, class_names):
                       "bbox": [left, top, right - left, bottom - top], "score": float(confidence)}
             results.append(result)
     return results
-
-
-def get_coco_map(class_names, path):
-    from pycocotools.coco import COCO
-    from pycocotools.cocoeval import COCOeval
-
-    GT_PATH = os.path.join(path, 'ground-truth')
-    DR_PATH = os.path.join(path, 'detection-results')
-    COCO_PATH = os.path.join(path, 'coco_eval')
-
-    if not os.path.exists(COCO_PATH):
-        os.makedirs(COCO_PATH)
-
-    GT_JSON_PATH = os.path.join(COCO_PATH, 'instances_gt.json')
-    DR_JSON_PATH = os.path.join(COCO_PATH, 'instances_dr.json')
-
-    with open(GT_JSON_PATH, "w") as f:
-        results_gt = preprocess_gt(GT_PATH, class_names)
-        json.dump(results_gt, f, indent=4)
-
-    with open(DR_JSON_PATH, "w") as f:
-        results_dr = preprocess_dr(DR_PATH, class_names)
-        json.dump(results_dr, f, indent=4)
-
-    cocoGt = COCO(GT_JSON_PATH)
-    cocoDt = cocoGt.loadRes(DR_JSON_PATH)
-    cocoEval = COCOeval(cocoGt, cocoDt, 'bbox')
-    cocoEval.evaluate()
-    cocoEval.accumulate()
-    cocoEval.summarize()
