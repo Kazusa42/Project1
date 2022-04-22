@@ -23,3 +23,7 @@ Mainly use YOLO v4 to do detection.
 1. Change the MODEL_PATH to the weight which needs to be evaluate.  
 2. Make sure you have already got "test.txt" under dir "./your_dataset_name/ImageSets".  
 3. Run get_map.py. And pay attention to papram _MINOVERLAP_.  
+
+## Dataset
+1. Mainly use DOTA v1.0 (perhaps will use v1.5 in the future).  
+2. Dataset has been augmented 3 times bigger.(Augment code see another repository)  
