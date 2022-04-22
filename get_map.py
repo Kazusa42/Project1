@@ -6,7 +6,7 @@ from tqdm import tqdm
 
 from yolo import YOLO
 from utils.utils import get_classes
-from utils.utils_map import get_coco_map, get_map
+from utils.utils_map import  get_map
 from configure import *
 
 if __name__ == "__main__":
@@ -24,13 +24,12 @@ if __name__ == "__main__":
     classes_path: normally just set it as the same path when training or predict
     MINOVERLAP: iou, the mAP will be calculated under this iou
     map_vis: visualization or not
-    VOCdevkit_path:
     map_out_path: mAP output file path 
     """
     classes_path = CLASSES_PATH
+    dataset_path = DATASET_PATH
     MINOVERLAP = 0.45
     map_vis = False
-    dataset_path = DATASET_PATH
     map_out_path = 'map_out'
 
     image_ids = open(os.path.join(dataset_path, "ImageSets/Main/test.txt")).read().strip().split()

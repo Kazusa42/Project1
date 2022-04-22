@@ -24,8 +24,7 @@ class YOLO(object):
         "backbone": BACKBONE,
         "input_shape": INPUT_SHAPE,
         "confidence": CONFIDENCE,
-        "nms_iou": NMS_SCORE,
-        "letterbox_image": False
+        "nms_iou": NMS_SCORE
     }
 
     @classmethod
@@ -64,7 +63,7 @@ class YOLO(object):
     def detect_image(self, image, crop=False):
         image_shape = np.array(np.shape(image)[0:2])
         image = cvtColor(image)
-        image_data = resize_image(image, (self.input_shape[1], self.input_shape[0]), self.letterbox_image)
+        image_data = resize_image(image, (self.input_shape[1], self.input_shape[0]))
         image_data = np.expand_dims(np.transpose(preprocess_input(np.array(image_data, dtype='float32')), (2, 0, 1)), 0)
 
         with torch.no_grad():
@@ -73,8 +72,8 @@ class YOLO(object):
                 images = images.cuda()
             outputs = self.net(images)
             outputs = self.bbox_util.decode_box(outputs)
-            results = non_max_suppression(torch.cat(outputs, 1), self.num_classes, self.input_shape,
-                                          image_shape, self.letterbox_image, conf_thres=self.confidence,
+            results = non_max_suppression(torch.cat(outputs, 1), self.num_classes,
+                                          image_shape, conf_thres=self.confidence,
                                           nms_thres=self.nms_iou)
             if results[0] is None:
                 return image
@@ -136,7 +135,7 @@ class YOLO(object):
     def get_FPS(self, image, test_interval):
         image_shape = np.array(np.shape(image)[0:2])
         image = cvtColor(image)
-        image_data = resize_image(image, (self.input_shape[1], self.input_shape[0]), self.letterbox_image)
+        image_data = resize_image(image, (self.input_shape[1], self.input_shape[0]))
         image_data = np.expand_dims(np.transpose(preprocess_input(np.array(image_data, dtype='float32')), (2, 0, 1)), 0)
 
         with torch.no_grad():
@@ -147,17 +146,17 @@ class YOLO(object):
             outputs = self.net(images)
             outputs = self.bbox_util.decode_box(outputs)
 
-            results = non_max_suppression(torch.cat(outputs, 1), self.num_classes, self.input_shape,
-                                          image_shape, self.letterbox_image, conf_thres=self.confidence,
+            results = non_max_suppression(torch.cat(outputs, 1), self.num_classes,
+                                          image_shape, conf_thres=self.confidence,
                                           nms_thres=self.nms_iou)
         t1 = time.time()
         for _ in range(test_interval):
             with torch.no_grad():
                 outputs = self.net(images)
                 outputs = self.bbox_util.decode_box(outputs)
-                results = non_max_suppression(torch.cat(outputs, 1), self.num_classes, self.input_shape,
-                                              image_shape, self.letterbox_image,
-                                              conf_thres=self.confidence, nms_thres=self.nms_iou)
+                results = non_max_suppression(torch.cat(outputs, 1), self.num_classes,
+                                              image_shape, conf_thres=self.confidence,
+                                              nms_thres=self.nms_iou)
 
         t2 = time.time()
         tact_time = (t2 - t1) / test_interval
@@ -167,7 +166,7 @@ class YOLO(object):
         f = open(os.path.join(map_out_path, "detection-results/" + image_id + ".txt"), "w")
         image_shape = np.array(np.shape(image)[0:2])
         image = cvtColor(image)
-        image_data = resize_image(image, (self.input_shape[1], self.input_shape[0]), self.letterbox_image)
+        image_data = resize_image(image, (self.input_shape[1], self.input_shape[0]))
         image_data = np.expand_dims(np.transpose(preprocess_input(np.array(image_data, dtype='float32')), (2, 0, 1)), 0)
 
         with torch.no_grad():
@@ -176,8 +175,8 @@ class YOLO(object):
                 images = images.cuda()
             outputs = self.net(images)
             outputs = self.bbox_util.decode_box(outputs)
-            results = non_max_suppression(torch.cat(outputs, 1), self.num_classes, self.input_shape,
-                                          image_shape, self.letterbox_image, conf_thres=self.confidence,
+            results = non_max_suppression(torch.cat(outputs, 1), self.num_classes,
+                                          image_shape, conf_thres=self.confidence,
                                           nms_thres=self.nms_iou)
 
             if results[0] is None:

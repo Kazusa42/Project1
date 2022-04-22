@@ -5,6 +5,7 @@ Aiming to simplify the trainging, predicting and evaluating process between diff
 
 """  Basic configure for model """
 CLASSES_PATH = r'model_data/DOTA_classes.txt'
+DATASET_PATH = r'DOTA'
 MODEL_PATH = r'model_data/ep266-loss0.226-val_loss0.296.pth'
 BACKBONE = r'resnet50'  # resnet50, mobilenetv1, mobilenetv2, mobilenetv3, densenet121, densenet169, densenet201
 IF_CUDA = r'True'
@@ -31,8 +32,6 @@ MOMENTUM = 0.937
 WEIGHT_DECAY = 5e-4
 LR_DECAY_TYPE = r'cos'
 
-""" Dataset """
-DATASET_PATH = r'DOTA'
 
 """ Others """
 FONT_TYPE = r'model_data/monoMMM_5.ttf'
