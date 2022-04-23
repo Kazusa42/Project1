@@ -27,3 +27,6 @@ Mainly use YOLO v4 to do detection.
 ## Dataset
 1. Mainly use DOTA v1.0 (perhaps will use v1.5 in the future).  
 2. Dataset has been augmented 3 times bigger.(Augment code see another repository)  
+
+## TODO
+1. Add ConvNeXt as backbone.
