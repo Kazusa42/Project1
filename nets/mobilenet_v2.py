@@ -133,7 +133,3 @@ def mobilenet_v2(pretrained=False, progress=True):
         model.load_state_dict(state_dict)
 
     return model
-
-
-if __name__ == "__main__":
-    print(mobilenet_v2())
