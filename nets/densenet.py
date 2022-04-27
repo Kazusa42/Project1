@@ -2,6 +2,7 @@ import re
 from collections import OrderedDict
 
 import torch.nn as nn
+import torch
 import torch.nn.functional as F
 import torch.utils.checkpoint as cp
 from torch.hub import load_state_dict_from_url
@@ -93,27 +94,20 @@ class DenseNet(nn.Module):
             ('pool0', nn.MaxPool2d(kernel_size=3, stride=2, padding=1)),
         ]))
 
-        #  构建四个阶段的dense_block
+        #  build dense_block
         num_features = num_init_features
         for i, num_layers in enumerate(block_config):
-            #  构建密集残差结构
             block = _DenseBlock(num_layers=num_layers, num_input_features=num_features, bn_size=bn_size,
                                 growth_rate=growth_rate, drop_rate=drop_rate, memory_efficient=memory_efficient)
             self.features.add_module('denseblock%d' % (i + 1), block)
-            #  计算经过密集残差后的通道数
             num_features = num_features + num_layers * growth_rate
 
             if i != len(block_config) - 1:
-                # 进行高宽的压缩
                 trans = _Transition(num_input_features=num_features, num_output_features=num_features // 2)
                 self.features.add_module('transition%d' % (i + 1), trans)
-                # 计算下一时刻的输入通道数
                 num_features = num_features // 2
 
-        # 标准化和激活函数
         self.features.add_module('norm5', nn.BatchNorm2d(num_features))
-
-        # Linear layer
         self.classifier = nn.Linear(num_features, num_classes)
 
         for m in self.modules():
@@ -169,13 +163,3 @@ def densenet169(pretrained=False, progress=True, **kwargs):
 def densenet201(pretrained=False, progress=True, **kwargs):
     return _densenet('densenet201', 32, (6, 12, 48, 32), 64, pretrained, progress,
                      **kwargs)
-
-
-if __name__ == "__main__":
-    import torch
-    from torchsummary import summary
-
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    m = densenet121(False).to(device)
-    # print(m)
-    summary(m, input_size=(3, 416, 416))
