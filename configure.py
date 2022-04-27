@@ -40,4 +40,4 @@ LR_DECAY_TYPE = r'cos'
 
 
 """ Others """
-FONT_TYPE = r'model_data/monoMMM_5.ttf'
+FONT_TYPE = r'model_data/font_style_1.ttf'
