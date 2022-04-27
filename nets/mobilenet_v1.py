@@ -75,13 +75,3 @@ def mobilenet_v1(pretrained=False, progress=True):
         state_dict = torch.load('./model_data/mobilenet_v1_weights.pth')
         model.load_state_dict(state_dict, strict=True)
     return model
-
-
-if __name__ == "__main__":
-    import torch
-    from torchsummary import summary
-
-    # 需要使用device来指定网络在GPU还是CPU运行
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model = mobilenet_v1().to(device)
-    summary(model, input_size=(3, 416, 416))
