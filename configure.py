@@ -3,11 +3,17 @@ Global variable configure
 Aiming to simplify the trainging, predicting and evaluating process between different dataset and weights
 """
 
+BACKBONE_LIST = [r'resneet50',  # 0
+                 r'mobilenetv1', r'mobilenetv2', r'mobilenetv3',  # 1, 2, 3
+                 r'convnext_tiny', r'convneext_small'  # 4, 5
+                 r'densenet121', r'densenet169', r'densenet201',  # 6, 7, 8
+                 r'CSPDarknet53']  # 9
+
 """  Basic configure for model """
 CLASSES_PATH = r'model_data/DOTA_classes.txt'
 DATASET_PATH = r'DOTA'
-MODEL_PATH = r'model_data/ep266-loss0.226-val_loss0.296.pth'
-BACKBONE = r'resnet50'  # resnet50, mobilenetv1, mobilenetv2, mobilenetv3, densenet121, densenet169, densenet201
+MODEL_PATH = r''
+BACKBONE = BACKBONE_LIST[4]
 IF_CUDA = r'True'
 ANCHOR_MASK = [[6, 7, 8], [3, 4, 5], [0, 1, 2]]
 ANCHOR_PATH = r'model_data/yolo_anchors.txt'
@@ -35,4 +41,3 @@ LR_DECAY_TYPE = r'cos'
 
 """ Others """
 FONT_TYPE = r'model_data/monoMMM_5.ttf'
-
