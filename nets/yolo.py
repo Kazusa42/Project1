@@ -10,6 +10,7 @@ from .mobilenet_v2 import mobilenet_v2
 from .mobilenet_v3 import mobilenet_v3
 from .resnet import resnet50
 from .CSPdarknet import darknet53
+from .convnext import convnext_tiny, convnext_small
 
 
 class MobileNetV1(nn.Module):
@@ -92,6 +93,20 @@ class ResNet(nn.Module):
         feat4 = self.model.layer3(feat3)
         feat5 = self.model.layer4(feat4)
         return [feat3, feat4, feat5]
+
+
+class ConvNeXt(nn.Module):
+    def __init__(self, backbone, pretrained=False):
+        super(ConvNeXt, self).__init__()
+        convnext = {
+            'convnext_small': convnext_small,
+            'convnext_tiny': convnext_tiny
+        }[backbone]
+        self.model = convnext(pretrained)
+
+    def forward(self, x):
+        x = self.model.forward(x)
+        return x[1:]
 
 
 def conv2d(filter_in, filter_out, kernel_size, groups=1, stride=1):
@@ -198,10 +213,13 @@ class YoloBody(nn.Module):
         elif backbone == 'CSPDarknet53':
             self.backbone = darknet53(pretrained=pretrained)
             in_filters = [256, 512, 1024]
+        elif backbone in ['convnext_tiny', 'convnext_small']:
+            self.backbone = ConvNeXt(backbone, pretrained=pretrained)
+            in_filters = [192, 384, 768]
         else:
             raise ValueError(
                 'Unsupported backbone - `{}`, Use mobilenetv1, mobilenetv2, mobilenetv3, ghostnet, vgg, densenet121, '
-                'densenet169, densenet201, resnet50.'.format(
+                'densenet169, densenet201, resnet50, convnext_small, convnext_tiny.'.format(
                     backbone))
 
         self.conv1 = make_three_conv([512, 1024], in_filters[2])
