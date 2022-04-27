@@ -16,7 +16,7 @@ Mainly use YOLO v4 to do detection.
 ## Code Structure
 1. "./nets" contains several backbone structures.  
 2. If want to add more backbone structure(s), please add under "./nets".  
-3. After add backbone, please re-write a _class_ method about new backbone in "./nets/backbones.py".  
+3. After add backbone, please re-write a _class_ method about new backbone in "./nets/backbones.py". And add your backbone in BACKBONE_LIST in "configure.py".  
 4. Other part is complete enough. Try not to change them.
 
 ## Train
