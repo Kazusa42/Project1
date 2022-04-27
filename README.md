@@ -8,10 +8,16 @@ Mainly use YOLO v4 to do detection.
 2. Rewrite "configure.py" to globally control the whole project.
 3. Codes has been tested on train.py. (Training process is OK)  
 
+### Ver 1.1, update on 04/27/2022
+1. Add ConvNeXt as backbone structure.  
+2. Add backbone.py to manage backbone structures. Make "./nets/yolo.py" more readable.  
+3. Training part had been tested.
+
 ## Code Structure
 1. "./nets" contains several backbone structures.  
 2. If want to add more backbone structure(s), please add under "./nets".  
-3. Other part is complete enough. Try not to change them.
+3. After add backbone, please re-write a _class_ method about new backbone in "./nets/backbones.py".  
+4. Other part is complete enough. Try not to change them.
 
 ## Train
 1. Change training schedule in "configure.py".  
@@ -29,4 +35,5 @@ Mainly use YOLO v4 to do detection.
 2. Dataset has been augmented 3 times bigger.(Augment code see another repository)  
 
 ## TODO
-1. Add ConvNeXt as backbone.
+1. Add ConvNeXt as backbone. (Done)  
+2. Train the model with ConvNeXt backbone.
