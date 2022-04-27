@@ -7,7 +7,7 @@ import torch.nn.functional as F
 import torch.utils.checkpoint as cp
 from torch.hub import load_state_dict_from_url
 
-__all__ = ['DenseNet', 'densenet121', 'densenet169', 'densenet201']
+__all__ = ['_Transition', 'DenseNet', 'densenet121', 'densenet169', 'densenet201']
 
 model_urls = {
     'densenet121': 'https://download.pytorch.org/models/densenet121-a639ec97.pth',
