@@ -10,3 +10,4 @@ torchsummary == 1.5.1
 opencv-python == 4.5.5.62
 thop
 tensorboard == 2.8.0
+timm~=0.5.4
