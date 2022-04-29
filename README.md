@@ -37,3 +37,4 @@ Mainly use YOLO v4 to do detection.
 ## TODO
 1. Add ConvNeXt as backbone. (Done)  
 2. Train the model with ConvNeXt backbone.
+3. Add somenew data augment. (ref: https://arxiv.org/pdf/2102.12219.pdf)
