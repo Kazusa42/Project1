@@ -1,5 +1,4 @@
 import math
-
 import torch.nn as nn
 import torch.utils.model_zoo as model_zoo
 
@@ -102,11 +101,11 @@ class ResNet(nn.Module):
         self.inplanes = 64
         super(ResNet, self).__init__()
         # 600,600,3 -> 300,300,64
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3, bias=False)
+        self.conv1 = nn.Conv2d(3, 64, kernel_size=(7, 7), stride=(2, 2), padding=3, bias=False)
         self.bn1 = nn.BatchNorm2d(64)
         self.relu = nn.ReLU(inplace=True)
         # 300,300,64 -> 150,150,64
-        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=0, ceil_mode=True)  # change
+        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=0, ceil_mode=True)
         # 150,150,64 -> 150,150,256
         self.layer1 = self._make_layer(block, 64, layers[0])
         # 150,150,256 -> 75,75,512
@@ -132,7 +131,7 @@ class ResNet(nn.Module):
         if stride != 1 or self.inplanes != planes * block.expansion:
             downsample = nn.Sequential(
                 nn.Conv2d(self.inplanes, planes * block.expansion,
-                          kernel_size=1, stride=stride, bias=False),
+                          kernel_size=(1, 1), stride=stride, bias=False),
                 nn.BatchNorm2d(planes * block.expansion),
             )
 
