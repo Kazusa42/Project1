@@ -4,10 +4,8 @@ Aiming to simplify the trainging, predicting and evaluating process between diff
 """
 
 BACKBONE_LIST = [r'resneet50',  # 0
-                 r'mobilenetv1', r'mobilenetv2', r'mobilenetv3',  # 1, 2, 3
-                 r'convnext_tiny', r'convneext_small'  # 4, 5
-                 r'densenet121', r'densenet169', r'densenet201',  # 6, 7, 8
-                 r'CSPDarknet53']  # 9
+                 r'convnext_tiny', r'convnext_small'  # 1, 2
+                 r'CSPDarknet53']  # 3
 
 """  Basic configure for model """
 CLASSES_PATH = r'model_data/DOTA_classes.txt'
@@ -41,3 +39,4 @@ LR_DECAY_TYPE = r'cos'
 
 """ Others """
 FONT_TYPE = r'model_data/font_style_1.ttf'
+
