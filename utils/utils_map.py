@@ -228,8 +228,7 @@ def draw_plot_func(dictionary, n_classes, window_title, plot_title, x_label,
             tp_val = tp_sorted[i]
             fp_str_val = " " + str(fp_val)
             tp_str_val = fp_str_val + " " + str(tp_val)
-            # trick to paint multicolor with offset:
-            # first paint everything and then repaint the first number
+
             t = plt.text(val, i, tp_str_val, color='forestgreen', va='center', fontweight='bold')
             plt.text(val, i, fp_str_val, color='crimson', va='center', fontweight='bold')
             if i == (len(sorted_values) - 1):  # largest bar
@@ -239,20 +238,18 @@ def draw_plot_func(dictionary, n_classes, window_title, plot_title, x_label,
         """
          Write number on side of bar
         """
-        fig = plt.gcf()  # gcf - get current figure
+        fig = plt.gcf()
         axes = plt.gca()
         r = fig.canvas.get_renderer()
         for i, val in enumerate(sorted_values):
-            str_val = " " + str(val)  # add a space before
+            str_val = " " + str(val)
             if val < 1.0:
                 str_val = " {0:.2f}".format(val)
             t = plt.text(val, i, str_val, color=plot_color, va='center', fontweight='bold')
             # re-set axes to show number inside the figure
             if i == (len(sorted_values) - 1):  # largest bar
                 adjust_axes(r, t, fig, axes)
-    # set window title
     fig.canvas.set_window_title(window_title)
-    # write classes in y axis
     tick_font_size = 12
     plt.yticks(range(n_classes), sorted_keys, fontsize=tick_font_size)
     """
@@ -271,19 +268,12 @@ def draw_plot_func(dictionary, n_classes, window_title, plot_title, x_label,
     if figure_height > init_height:
         fig.set_figheight(figure_height)
 
-    # set plot title
     plt.title(plot_title, fontsize=14)
-    # set axis titles
-    # plt.xlabel('classes')
     plt.xlabel(x_label, fontsize='large')
-    # adjust size of window
     fig.tight_layout()
-    # save the plot
     fig.savefig(output_path)
-    # show image
     if to_show:
         plt.show()
-    # close the plot
     plt.close()
 
 
@@ -559,7 +549,7 @@ def get_map(MINOVERLAP, draw_plot, path='./map_out'):
                     cv2.imshow("Animation", img)
                     cv2.waitKey(20)
                     output_img_path = RESULTS_FILES_PATH + "/images/detections_one_by_one/" + \
-                        class_name + "_detection" + str(idx) + ".jpg"
+                                      class_name + "_detection" + str(idx) + ".jpg"
                     cv2.imwrite(output_img_path, img)
                     cv2.imwrite(img_cumulative_path, img_cumulative)
 
@@ -725,7 +715,7 @@ def get_map(MINOVERLAP, draw_plot, path='./map_out'):
         to_show = False
         plot_color = 'forestgreen'
         draw_plot_func(gt_counter_per_class, n_classes, window_title, plot_title,
-                       x_label, output_path, to_show, plot_color, '',)
+                       x_label, output_path, to_show, plot_color, '', )
 
     """
     Draw log-average miss rate plot (Show lamr of all classes in decreasing order)
