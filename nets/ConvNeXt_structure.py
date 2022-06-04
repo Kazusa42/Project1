@@ -222,4 +222,3 @@ ConvNeXt(
   (norm3): LayerNorm()
 )
 
-Process finished with exit code 0
