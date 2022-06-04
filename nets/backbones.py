@@ -32,7 +32,7 @@ class ConvNeXt(nn.Module):
             'convnext_small': convnext_small,
             'convnext_tiny': convnext_tiny
         }[backbone]
-        self.model = convnext(pretrained)
+        self.model = convnext(True, pretrained)
 
     def forward(self, x):
         x = self.model.forward(x)
