@@ -9,10 +9,11 @@
 from functools import partial
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+import torchvision.models
+from thop import profile
 from timm.models.layers import trunc_normal_, DropPath
 
-from nets.TransNeck import TransNeck
+from nets.TransNeck import TransNeck1, LayerNorm, TransNeck
 
 
 class Block(nn.Module):
@@ -21,7 +22,8 @@ class Block(nn.Module):
         self.transneck = transneck
         self.dim = dim
         if self.transneck:
-            self.dwconv = TransNeck(in_planes=self.dim, planes=self.dim // 4, resolution=[20, 20])
+            self.dwconv = TransNeck1(in_planes=self.dim, planes=self.dim // 4, resolution=[20, 20])
+            # self.dwconv = TransNeck(in_planes=self.dim, planes=self.dim // 4, resolution=[20, 20])
         else:
             self.dwconv = nn.Conv2d(dim, dim, kernel_size=7, padding=3, groups=dim)  # depthwise conv
         self.norm = LayerNorm(dim, eps=1e-6)
@@ -35,8 +37,6 @@ class Block(nn.Module):
     def forward(self, x):
         input = x
         x = self.dwconv(x)
-        # print('x shape after dw:')
-        # print(x.shape)
         x = x.permute(0, 2, 3, 1)  # (N, C, H, W) -> (N, H, W, C)
         x = self.norm(x)
         x = self.pwconv1(x)
@@ -47,8 +47,6 @@ class Block(nn.Module):
         x = x.permute(0, 3, 1, 2)  # (N, H, W, C) -> (N, C, H, W)
 
         x = input + self.drop_path(x)
-        # print('x shape after block:')
-        # print(x.shape)
         return x
 
 
@@ -155,34 +153,6 @@ class ConvNeXt(nn.Module):
         return x
 
 
-class LayerNorm(nn.Module):
-    r""" LayerNorm that supports two data formats: channels_last (default) or channels_first.
-    The ordering of the dimensions in the inputs. channels_last corresponds to inputs with
-    shape (batch_size, height, width, channels) while channels_first corresponds to inputs
-    with shape (batch_size, channels, height, width).
-    """
-
-    def __init__(self, normalized_shape, eps=1e-6, data_format="channels_last"):
-        super().__init__()
-        self.weight = nn.Parameter(torch.ones(normalized_shape))
-        self.bias = nn.Parameter(torch.zeros(normalized_shape))
-        self.eps = eps
-        self.data_format = data_format
-        if self.data_format not in ["channels_last", "channels_first"]:
-            raise NotImplementedError
-        self.normalized_shape = (normalized_shape,)
-
-    def forward(self, x):
-        if self.data_format == "channels_last":
-            return F.layer_norm(x, self.normalized_shape, self.weight, self.bias, self.eps)
-        elif self.data_format == "channels_first":
-            u = x.mean(1, keepdim=True)
-            s = (x - u).pow(2).mean(1, keepdim=True)
-            x = (x - u) / torch.sqrt(s + self.eps)
-            x = self.weight[:, None, None] * x + self.bias[:, None, None]
-            return x
-
-
 model_urls = {
     "convnext_tiny_1k": "https://dl.fbaipublicfiles.com/convnext/convnext_tiny_1k_224_ema.pth",
     "convnext_small_1k": "https://dl.fbaipublicfiles.com/convnext/convnext_small_1k_224_ema.pth",
@@ -191,16 +161,16 @@ model_urls = {
 
 def convnext_tiny(trans_neck=True, pretrained=False, in_22k=False, **kwargs):
     model = ConvNeXt(depths=[3, 3, 9, 3], dims=[96, 192, 384, 768], transneck=trans_neck, **kwargs)
-    if pretrained:
+    if pretrained and trans_neck is False:
         url = model_urls['convnext_tiny_22k'] if in_22k else model_urls['convnext_tiny_1k']
         checkpoint = torch.hub.load_state_dict_from_url(url=url, map_location="cpu", check_hash=True)
         model.load_state_dict(checkpoint["model"])
     return model
 
 
-def convnext_small(pretrained=False, in_22k=False, **kwargs):
-    model = ConvNeXt(depths=[3, 3, 27, 3], dims=[96, 192, 384, 768], **kwargs)
-    if pretrained:
+def convnext_small(trans_neck=True, pretrained=False, in_22k=False, **kwargs):
+    model = ConvNeXt(depths=[3, 3, 27, 3], dims=[96, 192, 384, 768], transneck=trans_neck, **kwargs)
+    if pretrained and trans_neck is False:
         url = model_urls['convnext_small_22k'] if in_22k else model_urls['convnext_small_1k']
         checkpoint = torch.hub.load_state_dict_from_url(url=url, map_location="cpu")
         model.load_state_dict(checkpoint["model"])
@@ -208,9 +178,16 @@ def convnext_small(pretrained=False, in_22k=False, **kwargs):
 
 
 if __name__ == '__main__':
-    """
     img = torch.rand([1, 3, 640, 640])
-    model = convnext_tiny(pretrained=False)
+    model1 = convnext_tiny(trans_neck=True, pretrained=False)
+    model2 = convnext_tiny(trans_neck=False, pretrained=False)
+    model3 = torchvision.models.resnet50()
     # print(model)
-    model.forward(img)
-    """
+    model1.forward(img)
+    flops1, params1 = profile(model1, inputs=(img, ))
+    flops2, params2 = profile(model2, inputs=(img,))
+    flops3, params3 = profile(model3, inputs=(img,))
+    print('model1 Params = ' + str(params1 / 1000 ** 2) + 'M')
+    print('model2 Params = ' + str(params2 / 1000 ** 2) + 'M')
+    print('model3 Params = ' + str(params3 / 1000 ** 2) + 'M')
+
