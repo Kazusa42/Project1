@@ -11,26 +11,26 @@ BACKBONE_LIST = [r'resneet50',  # 0
 CLASSES_PATH = r'model_data/DOTA_classes.txt'
 DATASET_PATH = r'DOTA'
 MODEL_PATH = r''
-BACKBONE = BACKBONE_LIST[4]
+BACKBONE = BACKBONE_LIST[1]
 IF_CUDA = r'True'
 ANCHOR_MASK = [[6, 7, 8], [3, 4, 5], [0, 1, 2]]
-ANCHOR_PATH = r'model_data/yolo_anchors.txt'
-INPUT_SHAPE = [416, 416]
+ANCHOR_PATH = r'model_data/kmeans_anchors.txt'
 CONFIDENCE = 0.5
 NMS_SCORE = 0.3
-
+INPUT_SHAPE = [640, 640]
+RESOLUTION = [INPUT_SHAPE[0] // 32, INPUT_SHAPE[1] // 32]
 
 """ Training setting """
 PRE_TRAINED = False  # If MODEL_PATH is not None, the value will not work.
 MOSAIC = True
 
 INIT_EPOCH = 0
-FREEZE_EPOCH, UNFREZZEZ_EPOCH = 50, 100
-FREEZE_BATCH_SIZE, UNFREEZE_BATCH_SIZE = 16, 8
-FREEZE_TRAIN = True
+FREEZE_EPOCH, UNFREZZEZ_EPOCH = 0, 500
+FREEZE_BATCH_SIZE, UNFREEZE_BATCH_SIZE = 16, 6
+FREEZE_TRAIN = False
 
-OPT_TYPE = r'sgd'  # sgd or adam
-INIT_LR = 0.01  # If you use adam, set this value to 0.001
+OPT_TYPE = r'adam'  # sgd or adam
+INIT_LR = 0.001  # If you use adam, set this value to 0.001
 MIN_LR = INIT_LR * 0.01
 MOMENTUM = 0.937
 WEIGHT_DECAY = 5e-4
