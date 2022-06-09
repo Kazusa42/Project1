@@ -78,9 +78,9 @@ def load_data(file_path):
 
 if __name__ == '__main__':
     np.random.seed(0)
-    input_shape = [416, 416]
+    input_shape = [640, 640]
     anchors_num = 9
-    path = 'VOCdevkit/VOC2007/Annotations'
+    path = './DOTA/Annotations'
 
     print('Load xmls.')
     data = load_data(path)
