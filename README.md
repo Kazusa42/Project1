@@ -2,6 +2,8 @@
 Code for thesis.  
 Mainly use YOLO v4 to do detection.
 
+---
+
 ## Version  
 ### Ver 1.0, update on 04/22/2022  
 1. Simplify and modifiy some codes in "./nets" and "./utils".  
