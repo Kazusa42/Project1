@@ -13,7 +13,7 @@ import torchvision.models
 from thop import profile
 from timm.models.layers import trunc_normal_, DropPath
 
-from nets.TransNeck import TransNeck1, LayerNorm, TransNeck
+from nets.AttentionNeck import AttentionNeck1, LayerNorm, AttentionNeck
 
 
 class Block(nn.Module):
@@ -22,8 +22,8 @@ class Block(nn.Module):
         self.transneck = transneck
         self.dim = dim
         if self.transneck:
-            self.dwconv = TransNeck1(in_planes=self.dim, planes=self.dim // 4, resolution=[20, 20])
-            # self.dwconv = TransNeck(in_planes=self.dim, planes=self.dim // 4, resolution=[20, 20])
+            self.dwconv = AttentionNeck1(in_planes=self.dim, planes=self.dim // 4, resolution=[20, 20])
+            # self.dwconv = AttentionNeck(in_planes=self.dim, planes=self.dim // 4, resolution=[20, 20])
         else:
             self.dwconv = nn.Conv2d(dim, dim, kernel_size=7, padding=3, groups=dim)  # depthwise conv
         self.norm = LayerNorm(dim, eps=1e-6)
