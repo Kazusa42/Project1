@@ -15,7 +15,14 @@ Mainly use YOLO v4 to do detection.
 
 ### Ver 2.0, update on 06/10/2022
 1. Re-clustering anchor shapes based on cropped DOTA v1.0.  
-2. Add "AttentionNeck" structure. (Also named as "TransNeck")  
+2. Add "AttentionNeck" structure. (Also named as "TransNeck") 
+3. Del some un-use backbone.  
+
+
+## AttentionNeck (TransNeck)
+1. The _depthwise_ convolution in bottleneck provides a kind of __attention-like mechanism__.  
+2. Why not just use pure MHSA structure?  
+3. Here comes the _AttentionNeck_, replace the depthwise convolution in bottleneck by a MHSA structure.  
 
 ## Code Structure
 1. "./nets" contains several backbone structures.  
