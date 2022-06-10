@@ -13,6 +13,10 @@ Mainly use YOLO v4 to do detection.
 2. Add backbone.py to manage backbone structures. Make "./nets/yolo.py" more readable.  
 3. Training part had been tested.
 
+### Ver 2.0, update on 06/10/2022
+1. Re-clustering anchor shapes based on cropped DOTA v1.0.  
+2. Add "AttentionNeck" structure. (Also named as "TransNeck")  
+
 ## Code Structure
 1. "./nets" contains several backbone structures.  
 2. If want to add more backbone structure(s), please add under "./nets".  
@@ -32,9 +36,9 @@ Mainly use YOLO v4 to do detection.
 
 ## Dataset
 1. Mainly use DOTA v1.0 (perhaps will use v1.5 in the future).  
-2. Dataset has been augmented 3 times bigger.(Augment code see another repository)  
+2. Use the official code to crop DOTA into 900 * 900 sub-images.  
+3. The train dataset is combined by [original train dataset](https://drive.google.com/drive/folders/1gmeE3D7R62UAtuIFOB9j2M5cUPTwtsxK) and the cropped train dataset.  
+4. The test dataset is the [original val dataset](https://drive.google.com/drive/folders/1n5w45suVOyaqY84hltJhIZdtVFD9B224). 
 
 ## TODO
-1. Add ConvNeXt as backbone. (Done)  
-2. Train the model with ConvNeXt backbone.
-3. Add somenew data augment. (ref: https://arxiv.org/pdf/2102.12219.pdf)
+
