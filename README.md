@@ -1,6 +1,13 @@
 # Project1
-Code for thesis.  
-Mainly use YOLO v4 to do detection.
+Code for thesis. Mainly use YOLO v4 to do detection.
+
+This project focus on backbone structure, to see how it influence the performance of a model. At every begining, I tried ResNet50, CSPDarkNet53, DenseNet, MobileNet.
+However, they are not novle enough.
+
+So, the second step is to apply __ConvNext__ [paper](https://arxiv.org/pdf/2201.03545.pdf) as a new approach. And luckly, the model reach a strong baseline. The mAP
+on DOTA v1.0 dataset achieves about 65%.
+
+Now, I am trying to replace the depthwise convolution in bottleneck by a _MHSA_ block.
 
 ---
 
