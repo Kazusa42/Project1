@@ -61,9 +61,7 @@ Now, I am trying to replace the depthwise convolution in bottleneck by a _MHSA_ 
 
 ## Dataset
 1. Mainly use DOTA v1.0 (perhaps will use v1.5 in the future).  
-2. Use the official code to crop DOTA into 900 * 900 sub-images.  
-3. The train dataset is combined by [original train dataset](https://drive.google.com/drive/folders/1gmeE3D7R62UAtuIFOB9j2M5cUPTwtsxK) and the cropped train dataset.  
-4. The test dataset is the [original val dataset](https://drive.google.com/drive/folders/1n5w45suVOyaqY84hltJhIZdtVFD9B224). 
+2. Use the official code to crop DOTA into 960 * 960 sub-images.  
 
 ---
 
