@@ -31,8 +31,8 @@ Now, I am trying to replace the depthwise convolution in bottleneck by a _MHSA_ 
 
 ## AttentionNeck (TransNeck)
 1. The _depthwise_ convolution in bottleneck provides a kind of __attention-like mechanism__.  
-2. Why not just use pure MHSA structure?  
-3. Here comes the _AttentionNeck_, replace the depthwise convolution in bottleneck by a MHSA structure.  
+2. Why not just use pure `MHSA` structure?  
+3. `AttentionNeck`, replace the depthwise convolution in bottleneck by a MHSA structure.  
 
 ---
 
