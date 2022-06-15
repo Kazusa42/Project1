@@ -46,16 +46,16 @@ Now, I am trying to replace the depthwise convolution in bottleneck by a _MHSA_ 
 
 ## Train
 1. Change training schedule in "configure.py".  
-2. Make sure CLASSES_PATH and DATASET_PATH and MODEL_PATH are matched.
+2. Make sure `CLASSES_PATH` and `DATASET_PATH` and `MODEL_PATH` are matched.
 3. Weights file will be stored every epoch. It's okey to interrupt and re-start.
 4. When re-start, please change MODEL_PATH to the weights file when interrupting, as well as INIT_EPOCH.  
 
 ---
 
 ## Evaluate
-1. Change the MODEL_PATH to the weight which needs to be evaluate.  
+1. Change the `MODEL_PATH` to the weight which needs to be evaluate.  
 2. Make sure you have already got "test.txt" under dir "./your_dataset_name/ImageSets".  
-3. Run get_map.py. And pay attention to papram _MINOVERLAP_.  
+3. Run get_map.py. And pay attention to papram `MINOVERLAP`.  
 
 ---
 
