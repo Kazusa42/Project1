@@ -14,7 +14,7 @@ Use a pure global mulit-head self attention block to replace the depth-wise conv
 
 ![AttentionNeck](img/AttentionNeck.png "AttentionNeck")
 
-![MHSA](img/MHSA.svg "MHSA")
+![MHSA](img/MHSA.png "MHSA")
 
 ---
 
