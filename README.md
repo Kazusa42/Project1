@@ -12,6 +12,7 @@ Now, the model is training under a `MHSA` block.
 ## AttentionNeck  
 Use a pure global mulit-head self attention block to replace the depth-wise convolution in bottleneck. More etails about this design is shown blow.
 
+![AttentionNeck](img/AttentionNeck.png "AttentionNeck")
 
 ---
 
