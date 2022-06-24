@@ -42,7 +42,7 @@ Use a pure global mulit-head self attention block to replace the depth-wise conv
 ---
 
 ## Dataset
-The dataset is DOTA v1.0. The original train set will be used as train and val set. The original val set will be treated as test set.
+The original dataset is DOTA v1.0. The original train set will be used as train and val set. The original val set will be treated as test set.
 
 For training, the original train set is cropped into 2 scales:  
 ```
@@ -50,7 +50,12 @@ subsize = 640, overlap = 50
 subsize = 1280, overlap = 100
 ```
 
-For evaluate, how to crop the original val dataset has not been decided yet.
+For evaluate, the original val set is cropped as:
+```
+subsize = 1024, overlap = 50
+```
+
+The model is trained and evaluated on CROPPED_DOTA dataset.
 
 About how to processing the data, refer to another project `DOTA-processing`.
 
