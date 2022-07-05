@@ -9,7 +9,7 @@ from nets.yolo import YoloBody
 from nets.yolo_training import (YOLOLoss, get_lr_scheduler, set_optimizer_lr)
 from utils.callbacks import LossHistory
 from utils.dataloader import YoloDataset, yolo_dataset_collate
-from utils.utils import get_anchors, get_classes, weights_init
+from utils.utils import get_anchors, get_classes, weights_init, show_config
 from utils.utils_fit import fit_one_epoch
 
 from configure import *
@@ -28,31 +28,11 @@ if __name__ == "__main__":
     mosaic = MOSAIC
     label_smoothing = 0
 
-    #   在此提供若干参数设置建议，各位训练者根据自己的需求进行灵活调整：
-    #   （一）从整个模型的预训练权重开始训练： 
-    #       Init_Epoch = 0，Freeze_Epoch = 50，UnFreeze_Epoch = 100，Freeze_Train = True（默认参数）
-    #       Init_Epoch = 0，UnFreeze_Epoch = 100，Freeze_Train = False（不冻结训练）
-    #       其中：UnFreeze_Epoch可以在100-300之间调整。optimizer_type = 'sgd'，Init_lr = 1e-2。
-    #   （二）从主干网络的预训练权重开始训练：
-    #       Init_Epoch = 0，Freeze_Epoch = 50，UnFreeze_Epoch = 300，Freeze_Train = True（冻结训练）
-    #       Init_Epoch = 0，UnFreeze_Epoch = 300，Freeze_Train = False（不冻结训练）
-    #       其中：由于从主干网络的预训练权重开始训练，主干的权值不一定适合目标检测，需要更多的训练跳出局部最优解。
-    #             UnFreeze_Epoch可以在200-300之间调整，YOLOV5和YOLOX均推荐使用300。optimizer_type = 'sgd'，Init_lr = 1e-2。
-    #   （三）从0开始训练：
-    #       Init_Epoch = 0，UnFreeze_Epoch >= 300，Unfreeze_batch_size >= 16，Freeze_Train = False（不冻结训练）
-    #       其中：UnFreeze_Epoch尽量不小于300。optimizer_type = 'sgd'，Init_lr = 1e-2，mosaic = True。
-    #   （四）batch_size的设置：
-    #       在显卡能够接受的范围内，以大为好。显存不足与数据集大小无关，提示显存不足（OOM或者CUDA out of memory）请调小batch_size。
-    #       受到BatchNorm层影响，batch_size最小为2，不能为1。
-    #       正常情况下Freeze_batch_size建议为Unfreeze_batch_size的1-2倍。不建议设置的差距过大，因为关系到学习率的自动调整。
-
     Init_Epoch = INIT_EPOCH
     Freeze_Epoch = FREEZE_EPOCH
     Freeze_batch_size = FREEZE_BATCH_SIZE
-
     UnFreeze_Epoch = UNFREZZEZ_EPOCH
     Unfreeze_batch_size = UNFREEZE_BATCH_SIZE
-    #   Freeze_Train    是否进行冻结训练, 默认先冻结主干训练后解冻训练。
     Freeze_Train = FREEZE_TRAIN
 
     Init_lr = INIT_LR
@@ -83,7 +63,7 @@ if __name__ == "__main__":
         pretrained_dict = torch.load(model_path, map_location=device)
         pretrained_dict = {k: v for k, v in pretrained_dict.items() if np.shape(model_dict[k]) == np.shape(v)}
         model_dict.update(pretrained_dict)
-        model.load_state_dict(model_dict)
+        model.load_state_dict(model_dict, strict=False)
 
     yolo_loss = YOLOLoss(anchors, num_classes, input_shape, Cuda, anchors_mask, label_smoothing)
     loss_history = LossHistory("logs/", model, input_shape=input_shape)
@@ -101,8 +81,13 @@ if __name__ == "__main__":
     num_train = len(train_lines)
     num_val = len(val_lines)
 
-    #   主干特征提取网络特征通用，冻结训练可以加快训练速度
-    #   也可以在训练初期防止权值被破坏。
+    show_config(classes_path=classes_path, model_path=model_path, input_shape=input_shape, Init_Epoch=Init_Epoch,
+                Freeze_Epoch=Freeze_Epoch, UnFreeze_Epoch=UnFreeze_Epoch, Freeze_batch_size=Freeze_batch_size,
+                Unfreeze_batch_size=Unfreeze_batch_size, Freeze_Train=Freeze_Train,
+                Init_lr=Init_lr, Min_lr=Min_lr, optimizer_type=optimizer_type, momentum=momentum,
+                lr_decay_type=lr_decay_type, num_workers=num_workers, num_train=num_train, num_val=num_val,
+                pretrained=PRE_TRAINED, backbone=BACKBONE, attentionneck=IF_ATTENTIONNECK, anchor_shape=ANCHOR_PATH)
+
     if True:
         UnFreeze_flag = False
         if Freeze_Train:
@@ -173,7 +158,6 @@ if __name__ == "__main__":
 
             gen.dataset.epoch_now = epoch
             gen_val.dataset.epoch_now = epoch
-
             set_optimizer_lr(optimizer, lr_scheduler_func, epoch)
 
             fit_one_epoch(model_train, model, yolo_loss, loss_history, optimizer, epoch, epoch_step,
