@@ -40,25 +40,11 @@ About how to processing the data, refer to another project `DOTA-processing`.
 
 ---
 
-## Code Structure
-1. `./nets` contains several backbone structures.  
-2. If want to add more backbone structure(s), please add under `./nets`.  
-3. After add backbone, please re-write a _class_ method about new backbone in `./nets/backbones.py`. And add your backbone in `BACKBONE_LIST` in `configure.py`.  
-4. Other part is complete enough. Try not to change them.
+## Usage
+The label format is using VOC-style. So, first transform the annotations into `xml` file.
 
----
+To set the training scheduel, go to `configure.py`, almos every training paramaters are in this script.
 
-## Train
-1. Change training schedule in `configure.py`.  
-2. Make sure `CLASSES_PATH` and `DATASET_PATH` and `MODEL_PATH` are matched.
-3. Weights file will be stored every epoch. It's okey to interrupt and re-start.
-4. When re-start, please change `MODEL_PATH` to the weights file when interrupting, as well as `INIT_EPOCH`.  
+Run `train.py` to train the model. If train a model from very begining (do not pre-trained backbone or pre-trained model), set the `epoch` to some big value, such as 500. If use pre-trained backbone or model, `epoch` can be set to some small value to save the time, such as 300.
 
----
-
-## Evaluate
-1. Change the `MODEL_PATH` to the weight which needs to be evaluate.  
-2. Make sure you have already got `test.txt` under dir `./your_dataset_name/ImageSets/Main`.  
-3. Run `get_map.py`. Ppay attention to papram `MINOVERLAP`.  
-
----
+To evaluate the model, run `get_map.py`. The evaluateing params (such like mAP threshold) are independent from `configure.py`, please directly set them in `get_map.py`.
