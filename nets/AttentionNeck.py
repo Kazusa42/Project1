@@ -78,7 +78,7 @@ class MHSA(nn.Module):
         return out
 
 
-class AttentionNeck1(nn.Module):
+class AttentionNeck(nn.Module):
     expansion = 4
 
     def __init__(self, in_planes, planes, heads=4, drop_path=0., resolution=RESOLUTION):
@@ -104,37 +104,3 @@ class AttentionNeck1(nn.Module):
         out = F.gelu(self.conv1(out))
         print(out.shape)
         return out + self.drop_path(x)
-
-
-class AttentionNeck(nn.Module):
-    expansion = 4
-
-    def __init__(self, in_planes, planes, stride=1, heads=4, resolution=RESOLUTION):
-        super(AttentionNeck, self).__init__()
-
-        self.conv1 = nn.Conv2d(in_planes, planes, kernel_size=1, bias=False)
-        self.bn1 = nn.BatchNorm2d(planes)
-
-        self.conv2 = nn.ModuleList()
-        self.conv2.append(MHSA(planes, width=int(resolution[0]), height=int(resolution[1]), heads=heads))
-        if stride == 2:
-            self.conv2.append(nn.AvgPool2d(2, 2))
-        self.conv2 = nn.Sequential(*self.conv2)
-        self.bn2 = nn.BatchNorm2d(planes)
-        self.conv3 = nn.Conv2d(planes, self.expansion * planes, kernel_size=1, bias=False)
-        self.bn3 = nn.BatchNorm2d(self.expansion * planes)
-
-        self.shortcut = nn.Sequential()
-        if stride != 1 or in_planes != self.expansion * planes:
-            self.shortcut = nn.Sequential(
-                nn.Conv2d(in_planes, self.expansion * planes, kernel_size=1, stride=stride),
-                nn.BatchNorm2d(self.expansion * planes)
-            )
-
-    def forward(self, x):
-        out = F.gelu(self.bn1(self.conv1(x)))
-        out = F.gelu(self.bn2(self.conv2(out)))
-        out = self.bn3(self.conv3(out))
-        out += self.shortcut(x)
-        out = F.gelu(out)
-        return out
