@@ -82,7 +82,7 @@ class AttentionNeck(nn.Module):
     expansion = 4
 
     def __init__(self, in_planes, planes, heads=4, drop_path=0., resolution=RESOLUTION):
-        super(AttentionNeck1, self).__init__()
+        super(AttentionNeck, self).__init__()
 
         self.dsconv = nn.Conv2d(in_planes, planes, kernel_size=1, bias=False)
 
