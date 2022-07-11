@@ -13,7 +13,7 @@ import torchvision.models
 from thop import profile
 from timm.models.layers import trunc_normal_, DropPath
 
-from nets.AttentionNeck import AttentionNeck1, LayerNorm, AttentionNeck
+from nets.AttentionNeck import LayerNorm, AttentionNeck
 
 
 class Block(nn.Module):
