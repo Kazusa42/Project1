@@ -1,11 +1,7 @@
 # Project1
-Code for thesis. Mainly use YOLO v4 to do detection.
+Code for thesis. Mainly focus on how to improve the detector's performance on _multi-scale_ scenes.
 
-This project focus on backbone structure, to see how it influence the performance of a model. At every begining, ResNet50, CSPDarkNet53, DenseNet, MobileNet were tried. However, they are not novle enough.
-
-Then ConvNext has been applied as a new approach.
-
-Now, the model is training under a `MHSA` block.
+This project provides 2 ways to adress thie problem: `Attention Neck` and `Residual Feature Augmentation` in FPN.
 
 ---
 
