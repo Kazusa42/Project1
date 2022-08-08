@@ -6,13 +6,15 @@ Code for thesis. Mainly focus on 2 problems.
 ```
 
 According to these questions, I mainly proposed 3 methods to adress them.
+```
 1. Multi-scale crop.  
 2. Multi-head self-attention.  
 3. Residual feature augmentation.
+```
 
 ---
 
-## Multi-scale crop(Dataset)
+## Multi-scale crop (Dataset)
 The original dataset is DOTA v1.0. The original train set will be used as train and val set. The original val set will be treated as test set.
 
 For multi-scale crop training, the original train set is cropped into 3 scales:  
@@ -42,7 +44,7 @@ About how to processing the data, refer to another project `DOTA-processing`.
 
 ---
 
-## Multi-head self-attention(AttentionNeck)  
+## Multi-head self-attention (AttentionNeck)  
 Use a pure global mulit-head self attention block to replace the depth-wise convolution in bottleneck. More etails about this design is shown blow.
 
 The backbone structure is modified from a convnext_tiny, only the depthwise convolution in stage 4 is replaced by a AttentionNeck.
@@ -50,6 +52,12 @@ The backbone structure is modified from a convnext_tiny, only the depthwise conv
 ![AttentionNeck](img/AttentionNeck.png "AttentionNeck")
 
 ![MHSA](img/MHSA.png "MHSA")
+
+---
+
+## Residual Feature Augmentation (RFA)
+Add a residual link at the top of FPN. In order to inject multi-scale information into the top level of FPN.  
+The details of a `RFA` block is still modifying.
 
 ---
 
