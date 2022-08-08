@@ -1,7 +1,14 @@
 # Project1
-Code for thesis. Mainly focus on how to improve the detector's performance on _multi-scale_ scenes.
+Code for thesis. Mainly focus on 2 problems.  
+```
+1. High resolution image.
+2. Multi-scale scenario
+```
 
-This project provides 2 ways to adress thie problem: `Attention Neck` and `Residual Feature Augmentation` in FPN.
+According to these questions, I mainly proposed 3 methods to adress them.
+1. Multi-scale crop.  
+2. Multi-head self-attention.  
+3. Residual feature augmentation.
 
 ---
 
