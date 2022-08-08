@@ -57,8 +57,9 @@ The backbone structure is modified from a convnext_tiny, only the depthwise conv
 
 ## Residual Feature Augmentation (RFA)
 Add a residual link at the top of FPN. In order to inject multi-scale information into the top level of FPN.  
-The details of a `RFA` block is still modifying.
+The details of a `RFA` block is still modifying.  
 
+![RFA](img/RFA.png "RFA")
 ---
 
 ## Usage
