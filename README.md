@@ -12,7 +12,37 @@ According to these questions, I mainly proposed 3 methods to adress them.
 
 ---
 
-## AttentionNeck  
+## Multi-scale crop(Dataset)
+The original dataset is DOTA v1.0. The original train set will be used as train and val set. The original val set will be treated as test set.
+
+For multi-scale crop training, the original train set is cropped into 3 scales:  
+```
+subsize = 320, overlap = 50
+subsize = 640, overlap = 50
+subsize = 1280, overlap = 100
+```
+
+For multi-scale crop evaluateing, the original val set is cropped into 3 scales:
+```
+subsize = 320, overlap = 50
+subsize = 640, overlap = 50
+subsize = 1280, overlap = 100
+```
+
+The model is trained and evaluated on `MULTICROPPED_DOTA` dataset.
+
+And in order to evaluate the influence brought by `Multi-scale crop`, the model also trained under `SINGLECROPPED_DOTA` to perform a baseline. The cropping params are listed blow.  
+```
+Single scale crop, applied on train, val and test set.
+subsize = 640, overlap = 50
+```
+After cropping the images, the images without objects are removed. This process is quite significant, reduces the dataset size by over 30%.  
+
+About how to processing the data, refer to another project `DOTA-processing`.
+
+---
+
+## Multi-head self-attention(AttentionNeck)  
 Use a pure global mulit-head self attention block to replace the depth-wise convolution in bottleneck. More etails about this design is shown blow.
 
 The backbone structure is modified from a convnext_tiny, only the depthwise convolution in stage 4 is replaced by a AttentionNeck.
@@ -20,26 +50,6 @@ The backbone structure is modified from a convnext_tiny, only the depthwise conv
 ![AttentionNeck](img/AttentionNeck.png "AttentionNeck")
 
 ![MHSA](img/MHSA.png "MHSA")
-
----
-
-## Dataset
-The original dataset is DOTA v1.0. The original train set will be used as train and val set. The original val set will be treated as test set.
-
-For training, the original train set is cropped into 2 scales:  
-```
-subsize = 640, overlap = 50
-subsize = 1280, overlap = 100
-```
-
-For evaluate, the original val set is cropped as:
-```
-subsize = 960, overlap = 50
-```
-
-The model is trained and evaluated on CROPPED_DOTA dataset.
-
-About how to processing the data, refer to another project `DOTA-processing`.
 
 ---
 
