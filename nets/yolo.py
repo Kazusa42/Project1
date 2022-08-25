@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 
 from .backbones import DarkNet53, ResNet50, ConvNeXt
+from configure import *
 
 
 def conv2d(filter_in, filter_out, kernel_size, groups=1, stride=1):
@@ -76,6 +77,42 @@ def make_five_conv(filters_list, in_filters):
     return m
 
 
+class RFA(nn.Module):
+    """
+    Residual Feature Augmentation
+    """
+    def __init__(self, in_channel=768, neck_ratio=4, pooling_ratio=[1.0, 0.5, 0.4]):
+        super(RFA, self).__init__()
+        self.pooling_ratio = pooling_ratio
+        self.in_channel = in_channel
+        self.neck_ratio = neck_ratio
+
+        self.conv1 = nn.ModuleList()
+        self.conv1.extend([nn.Conv2d(self.in_channel, self.in_channel // self.neck_ratio, 1)
+                           for _ in range(len(self.pooling_ratio))])
+        self.activate = nn.GELU()
+        self.conv2 = nn.Conv2d(self.in_channel // self.neck_ratio * len(self.pooling_ratio),
+                               self.in_channel // self.neck_ratio, 1, padding=1)
+        self.conv3 = nn.Conv2d(self.in_channel // self.neck_ratio, 512, 3)
+
+    def forward(self, x):
+        h, w = x.shape[2], x.shape[3]
+        scaled_apf = []  # scalde adaptive pooling feature
+        for i in range(len(self.pooling_ratio)):
+            adaptive_pooling = nn.AdaptiveAvgPool2d((int(h * self.pooling_ratio[i]), int(w * self.pooling_ratio[i])))
+            f = adaptive_pooling(x)
+            f = self.conv1[i](f)
+            # f = self.activate(f)
+            upsample_bilinear2d = nn.UpsamplingBilinear2d(scale_factor=(1 / self.pooling_ratio[i]))
+            f = upsample_bilinear2d(f)
+            scaled_apf.append(f)
+        concat_apf = torch.cat(scaled_apf, dim=1)
+        P6 = self.conv2(concat_apf)
+        P6 = self.conv3(P6)
+        P6 = self.activate(P6)
+        return P6
+
+
 def yolo_head(filters_list, in_filters):
     m = nn.Sequential(
         conv_dw(in_filters, filters_list[0]),
@@ -85,8 +122,14 @@ def yolo_head(filters_list, in_filters):
 
 
 class YoloBody(nn.Module):
-    def __init__(self, anchors_mask, num_classes, backbone="", pretrained=False):
+    def __init__(self, anchors_mask, num_classes, backbone="convnext_tiny", pool_ratios=None,
+                 pretrained=False, residual_feature=RESIDUAL_FEATURE_AUG):
         super(YoloBody, self).__init__()
+
+        # paras for residual feature augmentation
+        if pool_ratios is None:
+            self.pool_ratios = [0.1, 0.2, 0.3]
+        self.res_feature = residual_feature
 
         if backbone == "resnet50":
             self.backbone = ResNet50(pretrained=pretrained)
@@ -126,10 +169,25 @@ class YoloBody(nn.Module):
 
         self.yolo_head1 = yolo_head([1024, len(anchors_mask[2]) * (5 + num_classes)], 512)
 
+        if self.res_feature:
+            self.make_P6 = RFA(in_channel=in_filters[2])
+
     def forward(self, x):
+        # x0 is C5
         x2, x1, x0 = self.backbone(x)
 
         P5 = self.conv1(x0)
+        if self.res_feature:
+            """
+            creating P6 and add P6 to P5
+            """
+            P6 = self.make_P6(x0)
+            """print("P6: ")
+            print(P6.shape)
+            print("P5: ")
+            print(P5.shape)"""
+            P5 += P6
+
         P5 = self.SPP(P5)
         P5 = self.conv2(P5)
         P5_upsample = self.upsample1(P5)
@@ -138,7 +196,6 @@ class YoloBody(nn.Module):
         P4 = torch.cat([P4, P5_upsample], axis=1)
         P4 = self.make_five_conv1(P4)
         P4_upsample = self.upsample2(P4)
-
         P3 = self.conv_for_P3(x2)
         P3 = torch.cat([P3, P4_upsample], axis=1)
         P3 = self.make_five_conv2(P3)
