@@ -1,20 +1,26 @@
-from thop import profile
+from nets.backbones import convnext_tiny
 import torch
-import nets.densenet
-from torchvision.models import resnet50
+from nets.yolo import YoloBody
+from configure import *
+from thop import profile
 
-net1 = nets.densenet.densenet121()
-net3 = nets.densenet.densenet169()
-net2 = resnet50()
+"""model = YoloBody(anchors_mask=ANCHOR_MASK, num_classes=15)
+x = torch.randn([1, 768, 20, 20])
 
-input = torch.randn(1, 3, 416, 416)
-flops1, params1 = profile(net1, inputs=(input, ))
-flops2, params2 = profile(net2, inputs=(input, ))
-flops3, params3 = profile(net3, inputs=(input, ))
+img = torch.randn([1, 3, 640, 640])
+x2, x1, x0 = model.backbone(img)
+print(x0.shape)
+tmp = model.conv1(x0)
+print(tmp.shape)"""
 
-print('resnet50')
-print('flops: %s; params: %s' % (flops2, params2))
-print('densenet121')
-print('flops: %s; params: %s' % (flops1, params1))
-print('densenet169')
-print('flops: %s; params: %s' % (flops3, params3))
+model1 = YoloBody(anchors_mask=ANCHOR_MASK, num_classes=15, backbone='convnext_tiny', pretrained=True,
+                  residual_feature=True)
+
+model2 = YoloBody(anchors_mask=ANCHOR_MASK, num_classes=15, backbone='convnext_tiny', pretrained=False,
+                  residual_feature=False)
+
+img = torch.rand([1, 3, 640, 640])
+flops1, params1 = profile(model1, inputs=(img,))
+flops2, params2 = profile(model2, inputs=(img,))
+print('model1 Params = ' + str(params1 / 1000 ** 2) + 'M')
+print('model2 Params = ' + str(params2 / 1000 ** 2) + 'M')

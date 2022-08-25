@@ -27,6 +27,7 @@ if __name__ == "__main__":
     pretrained = PRE_TRAINED
     mosaic = MOSAIC
     label_smoothing = 0
+    fp16 = IF_FP16
 
     Init_Epoch = INIT_EPOCH
     Freeze_Epoch = FREEZE_EPOCH
@@ -53,7 +54,8 @@ if __name__ == "__main__":
     class_names, num_classes = get_classes(classes_path)
     anchors, num_anchors = get_anchors(anchors_path)
 
-    model = YoloBody(anchors_mask, num_classes, backbone=backbone, pretrained=pretrained)
+    model = YoloBody(anchors_mask, num_classes, backbone=backbone, pretrained=pretrained,
+                     residual_feature=RESIDUAL_FEATURE_AUG)
     if not pretrained:
         weights_init(model)
     if model_path != '':
@@ -67,7 +69,13 @@ if __name__ == "__main__":
 
     yolo_loss = YOLOLoss(anchors, num_classes, input_shape, Cuda, anchors_mask, label_smoothing)
     loss_history = LossHistory("logs/", model, input_shape=input_shape)
-    
+
+    if fp16:
+        from torch.cuda.amp import GradScaler as GradScaler
+        scaler = GradScaler()
+    else:
+        scaler = None
+
     model_train = model.train()
     if Cuda:
         model_train = torch.nn.DataParallel(model)
@@ -81,12 +89,14 @@ if __name__ == "__main__":
     num_train = len(train_lines)
     num_val = len(val_lines)
 
-    show_config(classes_path=classes_path, model_path=model_path, input_shape=input_shape, Init_Epoch=Init_Epoch,
-                Freeze_Epoch=Freeze_Epoch, UnFreeze_Epoch=UnFreeze_Epoch, Freeze_batch_size=Freeze_batch_size,
-                Unfreeze_batch_size=Unfreeze_batch_size, Freeze_Train=Freeze_Train,
-                Init_lr=Init_lr, Min_lr=Min_lr, optimizer_type=optimizer_type, momentum=momentum,
-                lr_decay_type=lr_decay_type, num_workers=num_workers, num_train=num_train, num_val=num_val,
-                pretrained=PRE_TRAINED, backbone=BACKBONE, attentionneck=IF_ATTENTIONNECK, anchor_shape=ANCHOR_PATH)
+    show_config(input_shape=input_shape, Init_Epoch=Init_Epoch,
+                Freeze_Epoch=Freeze_Epoch, UnFreeze_Epoch=UnFreeze_Epoch,
+                Freeze_batch_size=Freeze_batch_size, Unfreeze_batch_size=Unfreeze_batch_size,
+                Freeze_Train=Freeze_Train,
+                optimizer_type=optimizer_type, momentum=momentum, lr_decay_type=lr_decay_type,
+                pretrained=PRE_TRAINED, backbone=BACKBONE, anchor_shape=ANCHOR_PATH,
+                AttentionNeck=IF_ATTENTIONNECK, AttentionHeads=ATTENTION_HEADS,
+                ResidualFeatureAug=RESIDUAL_FEATURE_AUG, Dataset=DATASET_PATH)
 
     if True:
         UnFreeze_flag = False
@@ -99,14 +109,14 @@ if __name__ == "__main__":
         Init_lr_fit = max(batch_size / nbs * Init_lr, 1e-4)
         Min_lr_fit = max(batch_size / nbs * Min_lr, 1e-6)
 
-        pg0, pg1, pg2 = [], [], []  
+        pg0, pg1, pg2 = [], [], []
         for k, v in model.named_modules():
             if hasattr(v, "bias") and isinstance(v.bias, nn.Parameter):
-                pg2.append(v.bias)    
+                pg2.append(v.bias)
             if isinstance(v, nn.BatchNorm2d) or "bn" in k:
-                pg0.append(v.weight)    
+                pg0.append(v.weight)
             elif hasattr(v, "weight") and isinstance(v.weight, nn.Parameter):
-                pg1.append(v.weight)   
+                pg1.append(v.weight)
         optimizer = {
             'adam': optim.Adam(pg0, Init_lr_fit, betas=(momentum, 0.999)),
             'sgd': optim.SGD(pg0, Init_lr_fit, momentum=momentum, nesterov=True)
@@ -118,7 +128,7 @@ if __name__ == "__main__":
 
         epoch_step = num_train // batch_size
         epoch_step_val = num_val // batch_size
-        
+
         if epoch_step == 0 or epoch_step_val == 0:
             raise ValueError("Dataset is too small to train.")
 
@@ -161,4 +171,4 @@ if __name__ == "__main__":
             set_optimizer_lr(optimizer, lr_scheduler_func, epoch)
 
             fit_one_epoch(model_train, model, yolo_loss, loss_history, optimizer, epoch, epoch_step,
-                          epoch_step_val, gen, gen_val, UnFreeze_Epoch, Cuda, save_period)
+                          epoch_step_val, gen, gen_val, UnFreeze_Epoch, Cuda, save_period, fp16, scaler)
