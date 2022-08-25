@@ -50,6 +50,8 @@ def non_max_suppression(prediction, num_classes, image_shape,
                 nms_thres
             )
 
+            max_detections = detections_class[keep]
+
             # Add max detections to outputs
             output[i] = max_detections if output[i] is None else torch.cat((output[i], max_detections))
 
@@ -88,7 +90,7 @@ class DecodeBox:
                 batch_size, len(self.anchors_mask[i]), self.bbox_attrs, input_height, input_width
             ).permute(0, 1, 3, 4, 2).contiguous()
 
-            x = torch.sigmoid(prediction[..., 0])  
+            x = torch.sigmoid(prediction[..., 0])
             y = torch.sigmoid(prediction[..., 1])
             w = prediction[..., 2]
             h = prediction[..., 3]

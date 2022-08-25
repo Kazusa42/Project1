@@ -4,8 +4,8 @@ from tqdm import tqdm
 from utils.utils import get_lr
 
 
-def fit_one_epoch(model_train, model, yolo_loss, loss_history, optimizer, epoch,
-                  epoch_step, epoch_step_val, gen, gen_val, Epoch, cuda, save_period):
+def fit_one_epoch(model_train, model, yolo_loss, loss_history, optimizer, epoch, epoch_step, epoch_step_val,
+                  gen, gen_val, Epoch, cuda, save_period, fp16, scaler):
     loss = 0
     val_loss = 0
 
@@ -26,16 +26,32 @@ def fit_one_epoch(model_train, model, yolo_loss, loss_history, optimizer, epoch,
                     targets = [torch.from_numpy(ann).type(torch.FloatTensor) for ann in targets]
 
             optimizer.zero_grad()
-            outputs = model_train(images)
+            if not fp16:
+                outputs = model_train(images)
 
-            loss_value_all = 0
-            for layer in range(len(outputs)):
-                loss_item = yolo_loss(layer, outputs[layer], targets)
-                loss_value_all += loss_item
-            loss_value = loss_value_all
+                loss_value_all = 0
+                for layer in range(len(outputs)):
+                    loss_item = yolo_loss(layer, outputs[layer], targets)
+                    loss_value_all += loss_item
+                loss_value = loss_value_all
+                loss_value.backward()
+                optimizer.step()
+            else:
+                from torch.cuda.amp import autocast
+                with autocast():
+                    outputs = model_train(images)
 
-            loss_value.backward()
-            optimizer.step()
+                    loss_value_all = 0
+                    for i in range(len(outputs)):
+                        with torch.cuda.amp.autocast(enabled=False):
+                            prediction = outputs[i].float()
+                        loss_item = yolo_loss(i, prediction, targets)
+                        loss_value_all += loss_item
+                    loss_value = loss_value_all
+
+                scaler.scale(loss_value).backward()
+                scaler.step(optimizer)
+                scaler.update()
 
             loss += loss_value.item()
 
