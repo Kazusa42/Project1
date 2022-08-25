@@ -14,15 +14,16 @@ from thop import profile
 from timm.models.layers import trunc_normal_, DropPath
 
 from nets.AttentionNeck import LayerNorm, AttentionNeck
+from configure import *
 
 
 class Block(nn.Module):
-    def __init__(self, dim, transneck=True, drop_path=0., layer_scale_init_value=1e-6):
+    def __init__(self, dim, attentionneck=IF_ATTENTIONNECK, drop_path=0., layer_scale_init_value=1e-6):
         super().__init__()
-        self.transneck = transneck
+        self.transneck = attentionneck
         self.dim = dim
         if self.transneck:
-            self.dwconv = AttentionNeck(in_planes=self.dim, planes=self.dim // 4, resolution=[20, 20])
+            self.dwconv = AttentionNeck(in_planes=self.dim, planes=self.dim // 4, resolution=RESOLUTION)
         else:
             self.dwconv = nn.Conv2d(dim, dim, kernel_size=7, padding=3, groups=dim)  # depthwise conv
         self.norm = LayerNorm(dim, eps=1e-6)
@@ -34,7 +35,7 @@ class Block(nn.Module):
         self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
 
     def forward(self, x):
-        input = x
+        out = x
         x = self.dwconv(x)
         x = x.permute(0, 2, 3, 1)  # (N, C, H, W) -> (N, H, W, C)
         x = self.norm(x)
@@ -45,7 +46,7 @@ class Block(nn.Module):
             x = self.gamma * x
         x = x.permute(0, 3, 1, 2)  # (N, H, W, C) -> (N, C, H, W)
 
-        x = input + self.drop_path(x)
+        x = out + self.drop_path(x)
         return x
 
 
@@ -63,7 +64,7 @@ class ConvNeXt(nn.Module):
         head_init_scale (float): Init scaling value for classifier weights and biases. Default: 1.
     """
 
-    def __init__(self, in_chans=3, depths=None, dims=None, transneck=True,
+    def __init__(self, in_chans=3, depths=None, dims=None, attentionneck=IF_ATTENTIONNECK,
                  drop_path_rate=0., layer_scale_init_value=1e-6, out_indices=None,
                  ):
         super().__init__()
@@ -92,10 +93,10 @@ class ConvNeXt(nn.Module):
         cur = 0
         flag = False
         for i in range(4):
-            if i == 3 and transneck is True:
+            if i == ATTENTION_START_STAGE and attentionneck is True:
                 flag = True
             stage = nn.Sequential(
-                *[Block(dim=dims[i], transneck=flag, drop_path=dp_rates[cur + j],
+                *[Block(dim=dims[i], attentionneck=flag, drop_path=dp_rates[cur + j],
                         layer_scale_init_value=layer_scale_init_value) for j in range(depths[i])]
             )
             self.stages.append(stage)
@@ -158,28 +159,28 @@ model_urls = {
 }
 
 
-def convnext_tiny(trans_neck=True, pretrained=False, in_22k=False, **kwargs):
-    model = ConvNeXt(depths=[3, 3, 9, 3], dims=[96, 192, 384, 768], transneck=trans_neck, **kwargs)
-    if pretrained and trans_neck is False:
+def convnext_tiny(attention_neck=IF_ATTENTIONNECK, pretrained=False, in_22k=False, **kwargs):
+    model = ConvNeXt(depths=[3, 3, 9, 3], dims=[96, 192, 384, 768], attentionneck=attention_neck, **kwargs)
+    if pretrained and attention_neck is False:
         url = model_urls['convnext_tiny_22k'] if in_22k else model_urls['convnext_tiny_1k']
         checkpoint = torch.hub.load_state_dict_from_url(url=url, map_location="cpu", check_hash=True)
-        model.load_state_dict(checkpoint["model"])
+        model.load_state_dict(checkpoint["model"], strict=False)
     return model
 
 
-def convnext_small(trans_neck=True, pretrained=False, in_22k=False, **kwargs):
-    model = ConvNeXt(depths=[3, 3, 27, 3], dims=[96, 192, 384, 768], transneck=trans_neck, **kwargs)
-    if pretrained and trans_neck is False:
+def convnext_small(attention_neck=IF_ATTENTIONNECK, pretrained=False, in_22k=False, **kwargs):
+    model = ConvNeXt(depths=[3, 3, 27, 3], dims=[96, 192, 384, 768], attentionneck=attention_neck, **kwargs)
+    if pretrained and attention_neck is False:
         url = model_urls['convnext_small_22k'] if in_22k else model_urls['convnext_small_1k']
         checkpoint = torch.hub.load_state_dict_from_url(url=url, map_location="cpu")
-        model.load_state_dict(checkpoint["model"])
+        model.load_state_dict(checkpoint["model"], strict=False)
     return model
 
 
 if __name__ == '__main__':
     img = torch.rand([1, 3, 640, 640])
-    model1 = convnext_tiny(trans_neck=True, pretrained=False)
-    model2 = convnext_tiny(trans_neck=False, pretrained=False)
+    model1 = convnext_tiny(attention_neck=True, pretrained=False)
+    model2 = convnext_tiny(attention_neck=False, pretrained=False)
     model3 = torchvision.models.resnet50()
     # print(model)
     model1.forward(img)
@@ -189,4 +190,3 @@ if __name__ == '__main__':
     print('model1 Params = ' + str(params1 / 1000 ** 2) + 'M')
     print('model2 Params = ' + str(params2 / 1000 ** 2) + 'M')
     print('model3 Params = ' + str(params3 / 1000 ** 2) + 'M')
-

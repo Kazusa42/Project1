@@ -3,7 +3,7 @@ from torch import nn
 import torch.nn.functional as F
 from timm.models.layers import DropPath
 
-from configure import RESOLUTION
+from configure import RESOLUTION, ATTENTION_HEADS
 
 
 def get_n_params(model):
@@ -45,7 +45,7 @@ class LayerNorm(nn.Module):
 
 
 class MHSA(nn.Module):
-    def __init__(self, n_dims, width, height, heads=4):
+    def __init__(self, n_dims, width, height, heads=ATTENTION_HEADS):
         super(MHSA, self).__init__()
         self.heads = heads
 
@@ -60,12 +60,12 @@ class MHSA(nn.Module):
 
     def forward(self, x):
         n_batch, C, width, height = x.size()
+
         q = self.query(x).view(n_batch, self.heads, C // self.heads, -1)
         k = self.key(x).view(n_batch, self.heads, C // self.heads, -1)
         v = self.value(x).view(n_batch, self.heads, C // self.heads, -1)
 
         content_content = torch.matmul(q.permute(0, 1, 3, 2), k)
-
         content_position = (self.rel_h + self.rel_w).view(1, self.heads, C // self.heads, -1).permute(0, 1, 3, 2)
         content_position = torch.matmul(content_position, q)
 
@@ -102,5 +102,6 @@ class AttentionNeck(nn.Module):
         out = self.layernorm(out)
         out = out.permute(0, 3, 1, 2)
         out = F.gelu(self.conv1(out))
-        print(out.shape)
+        # print(out.shape)
         return out + self.drop_path(x)
+

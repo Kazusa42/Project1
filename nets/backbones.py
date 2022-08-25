@@ -1,9 +1,9 @@
 import torch.nn as nn
-import torch.nn.functional as F
 
 from .resnet import resnet50
 from .CSPdarknet import darknet53
 from .convnext import convnext_tiny, convnext_small
+from configure import *
 
 
 class ResNet50(nn.Module):
@@ -32,7 +32,7 @@ class ConvNeXt(nn.Module):
             'convnext_small': convnext_small,
             'convnext_tiny': convnext_tiny
         }[backbone]
-        self.model = convnext(True, pretrained)
+        self.model = convnext(IF_ATTENTIONNECK, pretrained)
 
     def forward(self, x):
         x = self.model.forward(x)
